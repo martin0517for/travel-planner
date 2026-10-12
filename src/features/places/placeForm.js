@@ -19,7 +19,7 @@ import { parseCoordinates, looksLikeMapUrl, searchPlaces, isValidLatLng } from "
 export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted } = {}) {
   const isEdit = Boolean(place);
   const v = place || {
-    name: "", category: defaults.category || "attraction", area: defaults.area || "",
+    name: "", searchName: "", category: defaults.category || "attraction", area: defaults.area || "",
     tags: [], address: "", lat: null, lng: null, mapsUrl: "", website: "", notes: "",
   };
   // 位置的暫存狀態（按「儲存」才會寫入）
@@ -35,6 +35,13 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
           <label for="pl-title">名稱 <span class="field__required">必填</span></label>
           <input id="pl-title" name="placeTitle" type="search" enterkeyhint="done" maxlength="${LIMITS.name}" autocomplete="off" autocorrect="off"
                  placeholder="例如：淺草寺" value="${v.name}" />
+        </div>
+
+        <div class="field">
+          <label for="pl-gname">Google 地圖搜尋名稱</label>
+          <input id="pl-gname" name="placeGName" type="search" enterkeyhint="done" maxlength="${LIMITS.searchName}"
+                 autocomplete="off" autocorrect="off" placeholder="選填，例如日文原名：浅草寺" value="${v.searchName}" />
+          <p class="field__hint field__hint--tight">按「導航」時用這個名稱在 Google 地圖搜尋；沒填就用「名稱＋地區」。</p>
         </div>
 
         <fieldset class="field">
@@ -124,7 +131,7 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
                 <span class="location__ok">${icon("pin")}已定位 <span class="mono">${coords.lat}, ${coords.lng}</span></span>
                 <button type="button" class="link-btn" data-action="clear-coords">清除</button>
               `
-            : html`<span class="muted">尚未定位${mapsUrl ? "（已保存地圖連結，可用來導航）" : ""}</span>`
+            : html`<span class="muted">尚未定位（不會顯示在 App 的地圖上）${mapsUrl ? "・已保存地圖連結" : ""}</span>`
         );
         const clear = statusBox.querySelector('[data-action="clear-coords"]');
         if (clear) clear.addEventListener("click", () => { coords = null; paintStatus(); });
@@ -138,7 +145,9 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
 
       // 1. 用名稱搜尋
       searchBtn.addEventListener("click", async () => {
-        const query = [form.elements.placeTitle.value, form.elements.area.value].filter((s) => s.trim()).join(" ");
+        // 有填搜尋名稱就用它（通常是當地語言，比較容易找到），沒有就用名稱＋地區
+        const gname = form.elements.placeGName.value.trim();
+        const query = gname || [form.elements.placeTitle.value, form.elements.area.value].filter((s) => s.trim()).join(" ");
         searchBtn.disabled = true;
         render(resultsBox, html`<p class="muted">搜尋中…</p>`);
         try {
@@ -164,6 +173,8 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
             b.addEventListener("click", () => {
               const r = results[Number(b.dataset.index)];
               coords = { lat: r.lat, lng: r.lng };
+              // 搜尋名稱還空著的話，帶入搜尋結果的名稱（通常是當地語言）
+              if (!form.elements.placeGName.value.trim() && r.name) form.elements.placeGName.value = r.name.slice(0, LIMITS.searchName);
               if (!form.elements.placeAddr.value.trim()) form.elements.placeAddr.value = r.address.slice(0, LIMITS.address);
               render(resultsBox, html``);
               paintStatus();
@@ -187,7 +198,7 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
           coords = found;
           pasteMsg.textContent = "已從連結取得座標。";
         } else if (url) {
-          pasteMsg.textContent = "這個連結裡沒有座標（短網址無法解析），已保存連結供導航使用。也可以改用「用名稱搜尋」。";
+          pasteMsg.textContent = "這個連結裡沒有座標（短網址無法解析），已保存連結，可在預覽裡打開。要在 App 地圖上顯示，請改用「用名稱搜尋」。";
         } else {
           pasteMsg.textContent = "看不懂這段內容。請貼上地圖連結，或「35.71, 139.79」格式的座標。";
         }
@@ -207,6 +218,7 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
         e.preventDefault();
         const input = {
           name: form.elements.placeTitle.value,
+          searchName: form.elements.placeGName.value,
           category: form.elements.category.value,
           area: form.elements.area.value,
           tags: form.elements.tags.value,

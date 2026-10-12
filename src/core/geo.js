@@ -126,15 +126,11 @@ export async function searchPlaces(query) {
 }
 
 /**
- * 導航用的網址（開 Google 地圖）：有座標用座標；沒有就用保存的地圖連結；
- * 再沒有就用「名稱＋地址」搜尋。全部沒有回傳 null。
+ * 導航用的網址：一律用「名稱搜尋」開 Google 地圖（2026-10-13 使用者決定）。
+ * 搜尋文字：有填「Google 地圖搜尋名稱」就用它；沒有就用「名稱＋地區」。
+ * 座標不用在導航，只用在 App 內的地圖標示。
  */
 export function navigationUrl(place) {
-  if (isValidLatLng(place.lat, place.lng)) {
-    return `https://www.google.com/maps/dir/?api=1&destination=${place.lat},${place.lng}`;
-  }
-  const saved = safeUrl(place.mapsUrl);
-  if (saved) return saved;
-  const q = [place.name, place.address].filter(Boolean).join(" ");
+  const q = (place.searchName || [place.name, place.area].filter(Boolean).join(" ")).trim();
   return q ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}` : null;
 }

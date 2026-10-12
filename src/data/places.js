@@ -4,13 +4,14 @@
  *
  * Place 欄位：
  *   id        string   例如 "place_k3x9q2m7a1bc"
- *   name      string   必填，最多 60 字
+ *   name      string   必填，最多 60 字（自己習慣的名稱，例如中文）
+ *   searchName string  選填，最多 80 字：在 Google 地圖搜尋用的名稱（例如日文原名「浅草寺」）
  *   category  string   固定 6 類之一（見 PLACE_CATEGORIES），決定圖示與顏色
  *   area      string   地區（大分類，例如「東京」），最多 30 字，用來篩選
  *   tags      string[] 自訂標籤，最多 10 個，每個最多 20 字（例如「必訪」「雨天備案」）
  *   address   string   最多 160 字
- *   lat, lng  number | null  座標（放地圖、導航用）
- *   mapsUrl   string   保存的地圖連結（只接受 http/https）
+ *   lat, lng  number | null  座標（只用在 App 內的地圖標示；導航一律用名稱搜尋）
+ *   mapsUrl   string   貼上時保存的地圖連結（只接受 http/https），預覽裡可以打開
  *   website   string   官網（只接受 http/https）
  *   notes     string   備註，最多 1000 字
  *   createdAt / updatedAt
@@ -24,7 +25,7 @@ import { isValidLatLng } from "../core/geo.js";
 const COLLECTION = "places";
 const STORAGE_FAIL = "儲存失敗：手機本機空間不足，或瀏覽器不允許儲存（例如無痕模式）";
 
-export const LIMITS = { name: 60, area: 30, tag: 20, tags: 10, address: 160, notes: 1000, url: 2000 };
+export const LIMITS = { name: 60, searchName: 80, area: 30, tag: 20, tags: 10, address: 160, notes: 1000, url: 2000 };
 
 /** 固定分類。順序就是畫面上的顯示順序。顏色寫在 places.css（.cat--xxx）。 */
 export const PLACE_CATEGORIES = [
@@ -65,6 +66,7 @@ function cleanPlace(raw) {
   const hasCoords = isValidLatLng(raw.lat, raw.lng);
   return {
     name: cleanText(raw.name, LIMITS.name),
+    searchName: cleanText(raw.searchName, LIMITS.searchName),
     category: CATEGORY_VALUES.has(raw.category) ? raw.category : "attraction",
     area: cleanText(raw.area, LIMITS.area),
     tags: cleanTags(raw.tags),
