@@ -13,6 +13,9 @@ import { createRouter } from "./core/router.js";
 import { applyTheme, watchSystemTheme } from "./core/theme.js";
 import { renderShell } from "./features/shell/shell.js";
 import { renderPlaceholder } from "./features/shell/placeholder.js";
+import { renderTripList } from "./features/trips/tripList.js";
+import { renderTripOverview } from "./features/trips/tripOverview.js";
+import { tripStore } from "./data/trips.js";
 
 applyTheme("system");
 watchSystemTheme(() => "system");
@@ -20,20 +23,31 @@ watchSystemTheme(() => "system");
 // 記住「進設定頁之前」在哪一頁，設定頁的返回鍵才能回到原處
 let lastNonSettingsPath = "/trips";
 
-const tripPage = (active, eyebrow, heading) => (container, { id }) => {
-  renderPlaceholder(container, { heading, note: "這一頁會在後續步驟實作。" });
-  return { eyebrow, title: "旅程", back: "/trips", tripId: id, active };
+/**
+ * 旅程內的頁面共用這個包裝：先用網址的 id 找旅程，找不到就顯示「找不到」，
+ * 找到就交給各頁面的 renderBody 畫內容。標題一律顯示旅程名稱。
+ */
+const tripPage = (active, eyebrow, renderBody) => (container, { id }) => {
+  const trip = tripStore.get(id);
+  if (!trip) {
+    renderPlaceholder(container, { heading: "找不到這趟旅程", note: "它可能已經被刪除了。" });
+    return { eyebrow, title: "找不到旅程", back: "/trips" };
+  }
+  // refresh：資料改了之後重畫目前頁面（含頂部標題）
+  const refresh = () => router.refresh();
+  renderBody(container, trip, refresh);
+  return { eyebrow, title: trip.name, back: "/trips", tripId: trip.id, active };
 };
 
+const comingSoon = (heading) => (container) =>
+  renderPlaceholder(container, { heading, note: "這一頁會在後續步驟實作。" });
+
 const routes = {
-  "/trips": (container) => {
-    renderPlaceholder(container, { heading: "我的旅程", note: "下一步會在這裡做旅程列表。" });
-    return { eyebrow: "Trips", title: "我的旅程", back: null };
-  },
-  "/trips/:id": tripPage("overview", "Overview", "總覽"),
-  "/trips/:id/schedule": tripPage("schedule", "Schedule", "行程"),
-  "/trips/:id/map": tripPage("map", "Map", "地圖"),
-  "/trips/:id/lists": tripPage("lists", "Lists", "清單"),
+  "/trips": renderTripList,
+  "/trips/:id": tripPage("overview", "Overview", renderTripOverview),
+  "/trips/:id/schedule": tripPage("schedule", "Schedule", comingSoon("行程")),
+  "/trips/:id/map": tripPage("map", "Map", comingSoon("地圖")),
+  "/trips/:id/lists": tripPage("lists", "Lists", comingSoon("清單")),
   "/settings": (container) => {
     renderPlaceholder(container, { heading: "設定", note: "深色模式、資料備份等設定會放在這裡。" });
     return { eyebrow: "Settings", title: "設定", back: lastNonSettingsPath, hideSettings: true };
@@ -47,7 +61,7 @@ function notFound(container) {
 
 const page = document.getElementById("page");
 
-createRouter({
+const router = createRouter({
   routes,
   notFound,
   onRoute({ pattern, params, handler }) {
@@ -56,9 +70,12 @@ createRouter({
     if (pattern !== "/settings") {
       lastNonSettingsPath = window.location.hash.replace(/^#/, "") || "/trips";
     }
-    window.scrollTo(0, 0); // 換頁時回到頂端
   },
-}).start();
+  onNavigate() {
+    window.scrollTo(0, 0); // 換頁時回到頂端（同一頁重畫時不捲動）
+  },
+});
+router.start();
 
 // 離線功能：註冊 Service Worker
 if ("serviceWorker" in navigator) {

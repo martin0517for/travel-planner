@@ -1,0 +1,214 @@
+/* ============================================
+   components.css — 共用元件：按鈕、表單、底部面板、區塊標題、空狀態、分隔線
+   ============================================ */
+
+/* ---- 按鈕 ---- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: var(--tap-size);
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 0.95rem;
+  white-space: nowrap;
+}
+.btn .icon { width: 18px; height: 18px; }
+.btn--primary {
+  background: var(--color-accent);
+  color: var(--color-accent-text);
+}
+.btn--ghost {
+  background: var(--color-paper-card);
+  border: 1px solid var(--color-line);
+}
+.btn--small {
+  min-height: 36px;
+  padding: 0 var(--space-3);
+  font-size: 0.85rem;
+  background: var(--color-paper-card);
+  border: 1px solid var(--color-line);
+  position: relative;
+}
+/* 小按鈕外觀 36px，但點擊範圍仍擴大到 44px */
+.btn--small::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+}
+.btn--danger-text {
+  width: 100%;
+  margin-top: var(--space-4);
+  color: var(--color-danger);
+  font-weight: 500;
+}
+.btn:active { opacity: 0.7; }
+
+/* ---- 表單 ---- */
+.field {
+  margin-bottom: var(--space-4);
+  min-width: 0;
+}
+.field label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  color: var(--color-ink-soft);
+  margin-bottom: var(--space-2);
+}
+.field__required {
+  margin-left: 4px;
+  color: var(--color-danger);
+}
+.field input[type="text"],
+.field input[type="date"],
+.field textarea,
+.field select {
+  display: block;
+  width: 100%;
+  min-height: var(--tap-size);
+  padding: 10px var(--space-3);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  background: var(--color-paper-card);
+  color: var(--color-ink);
+  font: inherit;
+  font-size: 16px;                  /* 小於 16px 時 iPhone 會自動放大畫面 */
+  -webkit-appearance: none;
+  appearance: none;
+}
+/* iPhone 的日期欄位內容預設置中、高度也會跑掉，統一靠左 */
+.field input[type="date"] {
+  text-align: left;
+}
+.field input[type="date"]::-webkit-date-and-time-value {
+  text-align: left;
+}
+.field input:focus,
+.field textarea:focus {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+.field-row {
+  display: flex;
+  gap: var(--space-3);
+}
+.field-row .field { flex: 1; }
+.field-row + .field__hint { margin-top: calc(-1 * var(--space-2)); }
+.field__hint {
+  font-size: 0.8rem;
+  color: var(--color-ink-soft);
+  margin: 0 0 var(--space-4);
+}
+.form__errors {
+  color: var(--color-danger);
+  font-size: 0.9rem;
+  margin-bottom: var(--space-4);
+}
+.form__actions {
+  display: flex;
+  gap: var(--space-3);
+}
+.form__actions .btn { flex: 1; }
+
+/* ---- 底部滑出面板 ---- */
+body.is-locked { overflow: hidden; }
+
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  background: var(--color-backdrop);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  animation: fade-in 0.15s ease-out;
+}
+.sheet {
+  width: 100%;
+  max-width: var(--max-width);
+  max-height: 92dvh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;     /* 面板捲到底時不要帶動後面頁面 */
+  background: var(--color-paper);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  padding: var(--space-2) calc(var(--space-4) + var(--safe-right)) calc(var(--space-5) + var(--safe-bottom)) calc(var(--space-4) + var(--safe-left));
+  animation: slide-up 0.22s ease-out;
+}
+.sheet__handle {
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--color-line);
+  margin: 0 auto var(--space-2);
+}
+.sheet__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-4);
+}
+.sheet__title { font-size: 1.25rem; }
+.sheet__close {
+  width: var(--tap-size);
+  height: var(--tap-size);
+  margin-right: calc(-1 * var(--space-2));
+  font-size: 1.6rem;
+  line-height: 1;
+  color: var(--color-ink-soft);
+}
+@keyframes slide-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+/* ---- 區塊標題 ---- */
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+}
+.section-head--spaced { margin-top: var(--space-6); }
+.section-head__title {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-ink-soft);
+}
+
+/* ---- 空狀態 ---- */
+.empty {
+  text-align: center;
+  padding: var(--space-7) var(--space-4);
+}
+.empty__icon {
+  display: inline-flex;
+  padding: var(--space-3);
+  border-radius: 50%;
+  background: var(--color-paper-card);
+  box-shadow: var(--shadow-card);
+  margin-bottom: var(--space-4);
+}
+.empty h2 { margin-bottom: var(--space-2); }
+.empty p {
+  color: var(--color-ink-soft);
+  margin: 0 0 var(--space-5);
+}
+
+/* ---- 文字 ---- */
+.muted { color: var(--color-ink-soft); font-size: 0.9rem; }
+.center { text-align: center; }
+
+/* ---- 撕票孔洞分隔線（登機證元素） ---- */
+.perforation {
+  height: 2px;
+  margin: var(--space-5) 0;
+  background-image: radial-gradient(circle, var(--color-line) 1.5px, transparent 1.6px);
+  background-size: 10px 2px;
+  background-repeat: repeat-x;
+}

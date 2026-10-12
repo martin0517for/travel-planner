@@ -1,0 +1,129 @@
+/* ============================================
+   trips.css — 旅程列表的登機證卡片、總覽頁上方資訊
+   ============================================ */
+
+.trip-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.trip-card {
+  display: flex;
+  min-height: 104px;
+  background: var(--color-paper-card);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  color: var(--color-ink);
+  text-decoration: none;
+  overflow: hidden;
+}
+.trip-card:active { transform: scale(0.985); }
+
+.trip-card__main {
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+}
+.trip-card__name {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.1rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.trip-card__dest {
+  font-size: 0.9rem;
+  color: var(--color-ink-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.trip-card__dates {
+  margin-top: var(--space-1);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--color-ink-soft);
+  white-space: nowrap;
+}
+
+/* 票根：黑色色塊，左邊一排撕票孔洞 */
+.trip-card__stub {
+  position: relative;
+  width: 84px;
+  flex-shrink: 0;
+  background: var(--color-stub);
+  color: #ffffff;                   /* 票根永遠是黑底，文字固定白色，不跟主題 */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+.trip-card__stub::before {
+  content: "";
+  position: absolute;
+  left: -5px;
+  top: 6px;
+  bottom: 6px;
+  width: 10px;
+  background-image: radial-gradient(circle, var(--color-paper-card) 3px, transparent 3.5px);
+  background-size: 10px 12px;
+  background-repeat: repeat-y;
+}
+.stub__big {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.75rem;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.stub__small {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  opacity: 0.75;
+}
+
+/* 已結束的旅程淡一點 */
+.trip-list--ended .trip-card { opacity: 0.6; }
+.trip-list--ended .trip-card__stub { background: #6b6a66; }
+
+/* ---- 總覽頁上方 ---- */
+.trip-head__row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+.trip-head__info {
+  flex: 1;
+  min-width: 0;
+}
+.trip-head__name {
+  font-size: 1.5rem;
+  overflow-wrap: anywhere;          /* 很長的名稱自動換行，不會撐破版面 */
+}
+.trip-head__dest {
+  color: var(--color-ink-soft);
+  margin-top: 2px;
+}
+.trip-head__dates {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--color-ink-soft);
+  margin-top: var(--space-1);
+}
+.trip-head__status {
+  margin-top: var(--space-3);
+  display: inline-block;
+  font-size: 0.85rem;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--color-paper-card);
+  border: 1px solid var(--color-line);
+}

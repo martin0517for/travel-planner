@@ -5,7 +5,7 @@
  * 用 hash 的好處：GitHub Pages 這種純靜態主機不需要任何設定，重新整理也不會 404。
  */
 
-export function createRouter({ routes, notFound, onRoute }) {
+export function createRouter({ routes, notFound, onRoute, onNavigate }) {
   const compiled = Object.entries(routes).map(([pattern, handler]) => {
     const keys = [];
     const regex = new RegExp(
@@ -42,9 +42,14 @@ export function createRouter({ routes, notFound, onRoute }) {
 
   return {
     start() {
-      window.addEventListener("hashchange", resolve);
+      window.addEventListener("hashchange", () => {
+        resolve();
+        if (onNavigate) onNavigate();
+      });
       resolve();
     },
+    /** 重畫目前頁面（資料改了之後用），不捲動 */
+    refresh: resolve,
   };
 }
 
