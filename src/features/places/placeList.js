@@ -28,6 +28,12 @@ function paint(container) {
   const areas = placeStore.areas();
   if (filters.area && !areas.includes(filters.area)) filters.area = "";
 
+  // 重畫前記住兩排篩選列左右捲到哪裡（2026-10-13 實機：點右邊的分類後，整排會跳回最左邊）
+  const chipScroll = {};
+  container.querySelectorAll(".chips[aria-label]").forEach((row) => {
+    chipScroll[row.getAttribute("aria-label")] = row.scrollLeft;
+  });
+
   render(
     container,
     html`
@@ -74,6 +80,18 @@ function paint(container) {
       openPlaceForm({ defaults: { area: filters.area, category: filters.category }, onSaved: () => paint(container) })
     )
   );
+
+  // 還原篩選列的左右位置；若選中的那顆沒有完整露出，再輕輕捲到看得見
+  container.querySelectorAll(".chips[aria-label]").forEach((row) => {
+    const saved = chipScroll[row.getAttribute("aria-label")];
+    if (saved) row.scrollLeft = saved;
+    const active = row.querySelector(".chip.is-active");
+    if (!active) return;
+    const r = row.getBoundingClientRect();
+    const a = active.getBoundingClientRect();
+    if (a.left < r.left) row.scrollLeft -= r.left - a.left + 16;
+    else if (a.right > r.right) row.scrollLeft += a.right - r.right + 16;
+  });
 
   container.querySelectorAll("[data-filter]").forEach((btn) =>
     btn.addEventListener("click", () => {
