@@ -115,7 +115,13 @@
 .form__actions .btn { flex: 1; }
 
 /* ---- 底部滑出面板 ---- */
-body.is-locked { overflow: hidden; }
+/* 面板開啟時固定後面的頁面（top 由 sheet.js 設定成原本的捲動位置） */
+body.is-locked {
+  position: fixed;
+  left: 0;
+  right: 0;
+  overflow: hidden;
+}
 
 .sheet-backdrop {
   position: fixed;

@@ -32,8 +32,8 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
     body: html`
       <form class="form" novalidate>
         <div class="field">
-          <label for="pl-name">名稱 <span class="field__required">必填</span></label>
-          <input id="pl-name" name="name" type="text" maxlength="${LIMITS.name}" autocomplete="off"
+          <label for="pl-title">名稱 <span class="field__required">必填</span></label>
+          <input id="pl-title" name="placeTitle" type="text" maxlength="${LIMITS.name}" autocomplete="off" autocorrect="off"
                  placeholder="例如：淺草寺" value="${v.name}" />
         </div>
 
@@ -78,7 +78,7 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
 
         <div class="field">
           <label for="pl-address">地址</label>
-          <input id="pl-address" name="address" type="text" maxlength="${LIMITS.address}" autocomplete="off" value="${v.address}" />
+          <input id="pl-address" name="placeAddr" type="text" maxlength="${LIMITS.address}" autocomplete="off" value="${v.address}" />
         </div>
 
         <div class="field">
@@ -138,7 +138,7 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
 
       // 1. 用名稱搜尋
       searchBtn.addEventListener("click", async () => {
-        const query = [form.elements.name.value, form.elements.area.value].filter((s) => s.trim()).join(" ");
+        const query = [form.elements.placeTitle.value, form.elements.area.value].filter((s) => s.trim()).join(" ");
         searchBtn.disabled = true;
         render(resultsBox, html`<p class="muted">搜尋中…</p>`);
         try {
@@ -164,7 +164,7 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
             b.addEventListener("click", () => {
               const r = results[Number(b.dataset.index)];
               coords = { lat: r.lat, lng: r.lng };
-              if (!form.elements.address.value.trim()) form.elements.address.value = r.address.slice(0, LIMITS.address);
+              if (!form.elements.placeAddr.value.trim()) form.elements.placeAddr.value = r.address.slice(0, LIMITS.address);
               render(resultsBox, html``);
               paintStatus();
             })
@@ -206,11 +206,11 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
       form.addEventListener("submit", (e) => {
         e.preventDefault();
         const input = {
-          name: form.elements.name.value,
+          name: form.elements.placeTitle.value,
           category: form.elements.category.value,
           area: form.elements.area.value,
           tags: form.elements.tags.value,
-          address: form.elements.address.value,
+          address: form.elements.placeAddr.value,
           lat: coords ? coords.lat : null,
           lng: coords ? coords.lng : null,
           mapsUrl,
@@ -236,7 +236,6 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
         });
       }
 
-      if (!isEdit) form.elements.name.focus();
     },
   });
 }

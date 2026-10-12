@@ -17,8 +17,8 @@ export function openTripForm({ trip = null, onSaved, onDeleted } = {}) {
     body: html`
       <form class="form" novalidate>
         <div class="field">
-          <label for="trip-name">旅程名稱 <span class="field__required">必填</span></label>
-          <input id="trip-name" name="name" type="text" maxlength="${NAME_MAX}" autocomplete="off"
+          <label for="trip-title">旅程名稱 <span class="field__required">必填</span></label>
+          <input id="trip-title" name="tripTitle" type="text" maxlength="${NAME_MAX}" autocomplete="off"
                  placeholder="例如：東京賞櫻" value="${v.name}" required />
         </div>
         <div class="field">
@@ -72,7 +72,7 @@ export function openTripForm({ trip = null, onSaved, onDeleted } = {}) {
       form.addEventListener("submit", (e) => {
         e.preventDefault();
         const input = {
-          name: form.elements.name.value,
+          name: form.elements.tripTitle.value,
           destination: form.elements.destination.value,
           startDate: start.value,
           endDate: end.value,
@@ -101,9 +101,6 @@ export function openTripForm({ trip = null, onSaved, onDeleted } = {}) {
           if (onDeleted) onDeleted();
         });
       }
-
-      // 新增時自動把游標放在名稱欄（iPhone 會直接跳出鍵盤）
-      if (!isEdit) form.elements.name.focus();
     },
   });
 }
