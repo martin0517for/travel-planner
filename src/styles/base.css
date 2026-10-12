@@ -1,349 +1,77 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500;600;700&display=swap');
+/* ============================================
+   base.css — 全域基礎樣式
+   這裡也包含舊版踩過的坑的預防（見規格書第 7 節）
+   ============================================ */
 
-* {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
-html, body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  background: var(--color-paper);
-  color: var(--color-ink);
-  font-family: var(--font-body);
-  -webkit-font-smoothing: antialiased;
-}
-
 html {
-  /* 一律保留垂直捲軸的空間：不然頁面內容多（有捲軸）跟內容少（沒捲軸）
-     切換時，可視寬度會差一個捲軸的寬度，置中的內容（包含頂部標題列）
-     就會跟著左右跳動（這就是「Day1 有位移、Day2 沒有」的原因，
-     Day1 內容多會出現捲軸）。
-     用 overflow-y: scroll 強制捲軸一律顯示（即使內容不需要捲動），
-     這個寫法所有瀏覽器都支援（scrollbar-gutter 是新屬性，舊版 Safari
-     等瀏覽器不支援，不支援的話等於沒修到，所以改用這個更保險的寫法）。 */
-  overflow-y: scroll;
+  -webkit-text-size-adjust: 100%;   /* iPhone 轉橫向時不要自動放大字 */
+  -webkit-tap-highlight-color: transparent; /* 點擊時不要出現灰色方塊，改用自己的按下效果 */
 }
 
 body {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
+  margin: 0;
+  min-height: 100dvh;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  font-size: 16px;                  /* iPhone 輸入框字小於 16px 會自動放大畫面，所以基準用 16 */
+  line-height: 1.5;
+  overscroll-behavior-y: none;      /* 加入主畫面後，避免整頁被拉動的橡皮筋效果 */
 }
 
 h1, h2, h3 {
   font-family: var(--font-display);
   font-weight: 600;
-  margin: 0 0 var(--space-2);
-  letter-spacing: -0.01em;
+  line-height: 1.25;
+  margin: 0;
 }
 
-p { margin: 0 0 var(--space-3); line-height: 1.5; }
-
+/* 坑：button 預設不繼承文字色，深色模式會看不見字 */
 button {
-  font-family: var(--font-body);
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  padding: 0;
   cursor: pointer;
-  color: inherit; /* 瀏覽器預設 button 文字色不會跟著深色模式變，明確設成繼承避免看不見 */
+  touch-action: manipulation;       /* 取消點兩下放大的延遲，點了馬上有反應 */
 }
 
-a { color: var(--color-teal); }
-
-/* ---- App Shell ---- */
-#app {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-  flex-shrink: 0; /* body 的高度被固定成一個螢幕高，這裡明確擋掉縮小，
-    避免內容過長時 flexbox 把 #app 整個壓進一個螢幕高裡，
-    連帶把裡面的 topbar／nav 都壓扁（就是這次位移 bug 的根本原因） */
+a {
+  color: var(--color-link);
 }
 
-.topbar {
-  height: calc(var(--topbar-height) + var(--safe-top));
-  padding-top: var(--safe-top); /* iPhone 瀏海下方留空 */
-  flex-shrink: 0; /* 內容太長導致整頁超過一個螢幕高時，flexbox 預設會把它跟其他元件一起壓扁，這裡明確擋掉 */
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-left: var(--space-4);
-  padding-right: var(--space-4);
-  background: var(--color-paper);
-  border-bottom: 1px solid var(--color-line);
-  position: sticky;
-  top: 0;
-  z-index: 1500; /* 高於 Leaflet 地圖內部圖層（最高約 1000） */
+[hidden] {
+  display: none !important;         /* 確保 hidden 屬性不會被其他 display 樣式蓋掉 */
 }
 
-.topbar__title {
-  font-family: var(--font-display);
-  font-size: 1.15rem;
-  font-weight: 600;
-}
-
-.topbar__eyebrow {
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  letter-spacing: 0.08em;
-  color: var(--color-ink-soft);
-  text-transform: uppercase;
-}
-
-#app-view {
-  position: relative;
-  flex: 1;
-  width: 100%;
-  max-width: var(--max-width);
-  margin: 0 auto;
-  padding: var(--space-4) var(--space-4) calc(var(--nav-height) + var(--safe-bottom) + var(--space-5));
-}
-
-/* ---- 撕票孔洞分隔線：簽名元素 ---- */
-.perforation {
-  height: 1px;
-  margin: var(--space-5) 0;
-  background-image: radial-gradient(circle, var(--color-paper) 1.5px, transparent 1.6px),
-                     linear-gradient(to right, var(--color-line) 0 100%);
-  background-size: 10px 100%, 100% 1px;
-  background-position: center, center;
-  background-repeat: repeat-x, no-repeat;
-}
-
-/* ---- 底部導覽列 ---- */
-#nav-slot {
+.icon {
+  width: 24px;
+  height: 24px;
+  display: block;
   flex-shrink: 0;
 }
 
-.navbar {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: calc(var(--nav-height) + var(--safe-bottom));
-  padding-bottom: var(--safe-bottom); /* iPhone 底部橫條上方留空 */
-  display: flex;
-  background: var(--color-paper-card);
-  border-top: 1px solid var(--color-line);
-  z-index: 1600; /* 高於 Leaflet 地圖內部圖層，確保底部導覽列永遠在地圖之上 */
-}
-
-.navbar__item {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  border: none;
-  background: none;
-  color: var(--color-ink-soft);
-  font-size: 0.68rem;
-  font-family: var(--font-body);
-  padding: var(--space-2) 0;
-  position: relative;
-}
-
-.navbar__item svg {
-  width: 20px;
-  height: 20px;
-  display: block;
-}
-
-.navbar__item.is-active {
-  color: var(--color-ink);
-  font-weight: 600;
-}
-
-.navbar__item.is-active .navbar__icon-wrap {
-  color: var(--color-gold);
-}
-
-.navbar__item.is-active::before {
-  content: "";
+/* 只給螢幕閱讀器看的文字 */
+.sr-only {
   position: absolute;
-  top: 2px;
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: var(--color-gold);
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
-.navbar__icon-wrap {
-  display: flex;
-  color: var(--color-ink-soft);
-}
-
-/* ---- 空狀態 ---- */
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  padding: var(--space-7) var(--space-4);
-  color: var(--color-ink-soft);
-}
-
-.empty-state h2 {
-  color: var(--color-ink);
-  font-size: 1.1rem;
-}
-
-/* ---- 按鈕 ---- */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  border: none;
-  border-radius: var(--radius-sm);
-  padding: var(--space-3) var(--space-5);
-  font-weight: 600;
-  font-size: 0.9rem;
-  text-decoration: none;
-  transition: transform 0.1s ease;
-}
-
-.btn:active { transform: scale(0.98); }
-
-.btn--primary {
-  background: var(--color-ink);
-  color: var(--color-paper-card);
-}
-
-.btn--gold {
-  background: var(--color-gold);
-  color: var(--color-paper-card);
-}
-
-.btn--ghost {
-  background: transparent;
-  color: var(--color-ink-soft);
-  border: 1px solid var(--color-line);
-}
-
-.btn--danger {
-  background: transparent;
-  color: var(--color-coral);
-}
-
-.btn--block { width: 100%; }
-
-.btn--fab {
-  position: fixed;
-  right: var(--space-4);
-  bottom: calc(var(--nav-height) + var(--safe-bottom) + var(--space-4));
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  font-size: 1.5rem;
-  box-shadow: var(--shadow-card);
-  z-index: 1550;
-}
-
-/* ---- 表單 ---- */
-.field {
-  margin-bottom: var(--space-4);
-}
-
-.field label:not(.form-checkbox-row) {
-  display: block;
-  font-size: 0.78rem;
-  font-family: var(--font-mono);
-  letter-spacing: 0.03em;
-  color: var(--color-ink-soft);
-  text-transform: uppercase;
-  margin-bottom: var(--space-2);
-}
-
-.field input:not([type="checkbox"]):not([type="radio"]), .field select, .field textarea {
-  width: 100%;
-  padding: var(--space-3);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-sm);
-  background: var(--color-paper-card);
-  font-family: var(--font-body);
-  font-size: 0.95rem;
-  color: var(--color-ink);
-}
-
-.field input:not([type="checkbox"]):not([type="radio"]):focus, .field select:focus, .field textarea:focus {
-  outline: 2px solid var(--color-gold);
-  outline-offset: 1px;
-}
-
-.field-row {
-  display: flex;
-  gap: var(--space-3);
-}
-.field-row .field { flex: 1; }
-
-/* ---- Modal ---- */
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: var(--color-backdrop);
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  z-index: 3000; /* Modal 永遠蓋在最上面，包含 Leaflet 地圖與其 Popup */
-}
-
-.modal-sheet {
-  width: 100%;
-  max-width: var(--max-width);
-  background: var(--color-paper-card);
-  border-radius: var(--radius-md) var(--radius-md) 0 0;
-  padding: var(--space-5) var(--space-4) var(--space-6);
-  max-height: 88vh;
-  overflow-y: auto;
-}
-
-.modal-sheet__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--space-4);
-}
-
-.modal-sheet__close {
-  background: none;
-  border: none;
-  font-size: 1.3rem;
-  color: var(--color-ink-soft);
-  line-height: 1;
-}
-
-.modal-actions {
-  display: flex;
-  gap: var(--space-3);
-  margin-top: var(--space-5);
-}
-
-/* ---- 無障礙：可見鍵盤焦點 ---- */
-button:focus-visible, a:focus-visible {
-  outline: 2px solid var(--color-gold);
-  outline-offset: 2px;
-}
-
+/* 減少動態效果（使用者在 iPhone 設定開了「減少動態效果」時） */
 @media (prefers-reduced-motion: reduce) {
-  * { transition: none !important; animation: none !important; }
-}
-
-/* ============================================
-   桌面／大螢幕（≥700px）
-   整體版面跟手機維持一致（內容欄置中、無深色卡片外框），
-   唯獨 Modal 改成置中對話框，避免像手機下滑選單一樣貼在畫面下方。
-   ============================================ */
-@media (min-width: 700px) {
-  .modal-backdrop {
-    align-items: center;
-    padding: var(--space-5);
-  }
-
-  .modal-sheet {
-    width: 100%;
-    max-width: 480px;
-    max-height: 82vh;
-    border-radius: var(--radius-md);
-    box-shadow: 0 20px 60px rgba(23, 35, 61, 0.3);
+  *, *::before, *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
   }
 }

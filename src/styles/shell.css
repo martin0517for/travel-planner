@@ -1,0 +1,139 @@
+/* ============================================
+   shell.css — App 外框：頂部列、內容區、底部導覽列
+   版面方式：頂部列與底部導覽列都「固定」在螢幕上下，中間內容區自己捲動。
+   （舊版用 flex 排列時會被壓扁，改成固定定位就沒有這個問題）
+   ============================================ */
+
+/* ---- 頂部列 ---- */
+.topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: var(--z-topbar);
+  height: calc(var(--topbar-height) + var(--safe-top));
+  padding: var(--safe-top) calc(var(--space-2) + var(--safe-right)) 0 calc(var(--space-2) + var(--safe-left));
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  background: var(--color-paper);
+  border-bottom: 1px solid var(--color-line);
+}
+
+.topbar__titles {
+  flex: 1;
+  min-width: 0;                     /* 標題太長時才能被截斷成「…」 */
+  padding: 0 var(--space-2);
+}
+
+.topbar__eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-ink-soft);
+  line-height: 1.2;
+}
+
+.topbar__title {
+  font-size: 1.15rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 頂部列左右的圖示按鈕（返回、設定）：點擊範圍 44×44 */
+.icon-btn {
+  width: var(--tap-size);
+  height: var(--tap-size);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  flex-shrink: 0;
+  color: var(--color-ink);          /* 這些按鈕是 <a> 連結，要蓋掉連結的棕色 */
+}
+.icon-btn:active {
+  background: var(--color-pressed);
+}
+/* 左右沒有按鈕時保留同樣寬度的空位，標題位置才不會跳動 */
+.icon-btn--placeholder {
+  visibility: hidden;
+}
+
+/* ---- 內容區 ---- */
+.page {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding:
+    calc(var(--topbar-height) + var(--safe-top) + var(--space-4))
+    calc(var(--space-4) + var(--safe-right))
+    calc(var(--space-6) + var(--safe-bottom))
+    calc(var(--space-4) + var(--safe-left));
+}
+/* 有底部導覽列時，內容底部要多留導覽列的高度 */
+body.has-navbar .page {
+  padding-bottom: calc(var(--nav-height) + var(--safe-bottom) + var(--space-6));
+}
+
+/* ---- 底部導覽列 ---- */
+.navbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: var(--z-navbar);
+  height: calc(var(--nav-height) + var(--safe-bottom));
+  padding: 0 var(--safe-right) var(--safe-bottom) var(--safe-left);
+  display: flex;
+  background: var(--color-paper-card);
+  border-top: 1px solid var(--color-line);
+}
+
+.navbar__item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-size: 0.7rem;
+  color: var(--color-ink-soft);
+  text-decoration: none;
+}
+.navbar__item .icon {
+  width: 22px;
+  height: 22px;
+}
+.navbar__item.is-active {
+  color: var(--color-ink);
+  font-weight: 600;
+}
+.navbar__item:active {
+  background: var(--color-pressed);
+}
+
+/* ---- 佔位頁（功能還沒做的頁面） ---- */
+.placeholder {
+  margin-top: var(--space-7);
+  text-align: center;
+  color: var(--color-ink-soft);
+}
+.placeholder__badge {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  border: 1px dashed var(--color-line);
+  border-radius: 999px;
+  padding: 2px 10px;
+  margin-bottom: var(--space-3);
+}
+.placeholder h2 {
+  color: var(--color-ink);
+  margin-bottom: var(--space-2);
+}
+.placeholder p {
+  margin: 0;
+  font-size: 0.9rem;
+}

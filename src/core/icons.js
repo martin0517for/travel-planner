@@ -1,25 +1,27 @@
 /**
- * 共用 SVG 線條圖示（跟底部導覽列 navBar.js 同一套視覺語言：
- * viewBox 0 0 24 24、無填色、線條顏色跟隨文字色 currentColor）。
- * 目前給「行程」分類跟「清單」分類用，取代原本的 emoji。
+ * icons.js — 全 App 共用的 SVG 線條圖示（不用 emoji）。
+ * 規格：viewBox 0 0 24 24、無填色、線條顏色跟隨文字色（currentColor）、粗細 1.7。
+ * 這些是程式寫死的內容，所以用 raw() 標記為安全。
  */
+import { raw } from "./html.js";
+
 const PATHS = {
-  attraction: '<path d="M3 20l5-9 4 5 3-4 6 8H3z"/><circle cx="8" cy="7" r="2"/>',
-  restaurant:
-    '<path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/>',
-  shopping:
-    '<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/>',
-  transport:
-    '<rect x="4" y="3" width="16" height="13" rx="3"/><path d="M4 10h16"/><path d="M9 21l-2-3M15 21l2-3"/><circle cx="8" cy="14" r="1"/><circle cx="16" cy="14" r="1"/>',
-  other: '<circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/>',
-  packing:
-    '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M3 12h18"/>',
-  photo: '<rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5-9 9"/>',
-  wishlist: '<path d="M4 3h13a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H4"/><path d="M4 3v18"/><path d="M9 8h6M9 12h6M9 16h4"/>',
+  // 導覽
+  back: '<path d="M15 5l-7 7 7 7"/>',
+  settings:
+    '<circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 00-.2-1.6l2-1.5-2-3.5-2.4.7A7 7 0 0014 4.6L13.6 2h-3.2L10 4.6a7 7 0 00-2.4 1.4l-2.4-.7-2 3.5 2 1.5A7 7 0 005 12c0 .5 0 1 .2 1.6l-2 1.5 2 3.5 2.4-.7c.7.6 1.5 1 2.4 1.4l.4 2.6h3.2l.4-2.6c.9-.4 1.7-.8 2.4-1.4l2.4.7 2-3.5-2-1.5c.1-.5.2-1 .2-1.6z"/>',
+  overview: '<path d="M4 6h16M4 12h16M4 18h16"/>',
+  schedule: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+  map: '<path d="M12 21s-7-6-7-11a7 7 0 0114 0c0 5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>',
+  lists: '<path d="M4 6h16M4 12h16M4 18h10"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  plane: '<path d="M3 13l18-8-6 16-3-7-9-1z"/>',
 };
 
-export function svgIcon(name) {
+export function icon(name) {
   const path = PATHS[name];
-  if (!path) return "";
-  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${path}</svg>`;
+  if (!path) return raw("");
+  return raw(
+    `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${path}</svg>`
+  );
 }

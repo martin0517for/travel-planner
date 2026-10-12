@@ -3,34 +3,51 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+  <!--
+    內容安全政策（CSP）：只允許載入這裡列出的來源，其他一律擋掉。
+    就算有惡意文字混進畫面，也無法載入外部程式或把資料送出去。
+    之後加地圖、天氣、匯率時，要在對應的項目補上它們的網域。
+    注意：style-src 沒有開放 'unsafe-inline'，所以 HTML 裡不能寫 style="..."，樣式一律寫在 CSS 檔。
+  -->
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src 'self';
+    style-src 'self';
+    font-src 'self';
+    img-src 'self' data: blob:;
+    connect-src 'self';
+    manifest-src 'self';
+    worker-src 'self';
+    object-src 'none';
+    base-uri 'none';
+    form-action 'none'
+  " />
+  <meta name="referrer" content="no-referrer" />
+
   <title>Travel Planner</title>
-  <meta name="theme-color" content="#37352f" />
+  <meta name="theme-color" content="#f7f7f5" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#191919" media="(prefers-color-scheme: dark)" />
+
+  <!-- PWA／iPhone 加入主畫面 -->
   <link rel="manifest" href="./manifest.json" />
-  <!-- iPhone「加入主畫面」用：圖示、全螢幕模式、主畫面上顯示的名稱 -->
   <link rel="apple-touch-icon" href="./public/icons/apple-touch-icon.png" />
   <link rel="icon" type="image/png" href="./public/icons/icon-192.png" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="旅行規劃" />
+
   <link rel="stylesheet" href="./src/styles/tokens.css" />
   <link rel="stylesheet" href="./src/styles/base.css" />
-  <link rel="stylesheet" href="./src/styles/components.css" />
+  <link rel="stylesheet" href="./src/styles/shell.css" />
 </head>
 <body>
   <div id="app">
-    <header class="topbar">
-      <div>
-        <div class="topbar__eyebrow" id="topbar-eyebrow">TRIPS</div>
-        <div class="topbar__title" id="topbar-title">我的旅程</div>
-      </div>
-    </header>
-
-    <main id="app-view"></main>
-
-    <div id="nav-slot"></div>
+    <header class="topbar" id="topbar"></header>
+    <main class="page" id="page"></main>
+    <nav class="navbar" id="navbar" hidden></nav>
   </div>
-
   <script type="module" src="./src/main.js"></script>
 </body>
 </html>
