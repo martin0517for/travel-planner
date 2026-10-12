@@ -1,0 +1,800 @@
+/* ---- 旅程卡片：登機證票根風格 ---- */
+.trip-card {
+  position: relative;
+  display: flex;
+  background: var(--color-paper-card);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  margin-bottom: var(--space-4);
+  overflow: hidden;
+}
+
+.trip-card__main {
+  flex: 1;
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.trip-card__title {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.trip-card__subtitle {
+  font-size: 0.85rem;
+  color: var(--color-ink-soft);
+}
+
+.trip-card__dates {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--color-ink-soft);
+  margin-top: var(--space-2);
+}
+
+/* 票根撕線：卡片右側的登機證存根 */
+.trip-card__stub {
+  width: 84px;
+  flex-shrink: 0;
+  background: var(--color-stub);
+  color: #fbfbf8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  position: relative;
+}
+
+.trip-card__stub::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-left: 2px dashed rgba(251, 251, 248, 0.35);
+}
+
+.trip-card__countdown-num {
+  font-family: var(--font-mono);
+  font-size: 1.5rem;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.trip-card__countdown-label {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+
+.trip-card__actions {
+  position: absolute;
+  top: var(--space-2);
+  right: 92px;
+  display: flex;
+  gap: var(--space-1);
+}
+
+.trip-card__icon-btn {
+  background: none;
+  border: none;
+  color: var(--color-ink-soft);
+  font-size: 0.9rem;
+  padding: var(--space-1);
+  border-radius: var(--radius-sm);
+}
+
+.trip-card__icon-btn:hover {
+  color: var(--color-ink);
+}
+
+.trip-card {
+  cursor: pointer;
+}
+
+/* ---- 返回連結 ---- */
+.back-link {
+  display: inline-block;
+  font-size: 0.82rem;
+  color: var(--color-ink-soft);
+  text-decoration: none;
+  margin-bottom: var(--space-2);
+}
+.back-link:hover { color: var(--color-ink); }
+
+/* ---- 旅程詳情頁標頭 ---- */
+.trip-detail-header { margin-top: var(--space-2); }
+.trip-detail-header__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.trip-detail-header__row h2 { margin: 0; }
+.trip-detail-header__dates {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--color-ink-soft);
+}
+
+/* ---- 區塊標頭（航班／住宿） ---- */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+}
+.section-header h3 { font-size: 1rem; }
+.section-empty {
+  color: var(--color-ink-soft);
+  font-size: 0.85rem;
+}
+
+/* ---- 通用紀錄項目（航班／住宿列表） ---- */
+.record-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  background: var(--color-paper-card);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-2);
+  box-shadow: var(--shadow-card);
+}
+.record-item__main {
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  padding: 2px 4px;
+  margin: -2px -4px;
+}
+.record-item__main:hover { background: rgba(23, 35, 61, 0.03); }
+.record-item__title {
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+.record-item__sub {
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  color: var(--color-ink-soft);
+  margin-top: 2px;
+}
+.record-item__sub > div + div { margin-top: 2px; }
+.record-item__actions {
+  display: flex;
+  gap: var(--space-1);
+  flex-shrink: 0;
+}
+
+/* ---- 地點選擇按鈕（表單內開啟 Picker） ---- */
+.place-select-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  background: var(--color-paper-card);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  color: var(--color-ink);
+}
+
+.edit-place-link {
+  margin-top: var(--space-2);
+  border: none;
+  background: none;
+  color: var(--color-teal);
+  font-size: 0.78rem;
+  padding: 0;
+}
+.edit-place-link:hover { text-decoration: underline; }
+
+/* ---- 地點選擇器結果列表 ---- */
+.picker-item {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  padding: var(--space-3);
+  border: none;
+  border-bottom: 1px solid var(--color-line);
+  background: none;
+}
+.picker-item__name { font-weight: 600; font-size: 0.9rem; color: var(--color-ink); }
+.picker-item__meta { font-size: 0.75rem; color: var(--color-ink-soft); margin-top: 2px; }
+
+/* ---- 地點庫：分類 chip ---- */
+.chip-row {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin: var(--space-3) 0;
+}
+.chip {
+  border: 1px solid var(--color-line-soft);
+  background: var(--color-paper-card);
+  border-radius: 999px;
+  padding: var(--space-1) var(--space-3);
+  font-size: 0.78rem;
+  color: var(--color-ink-soft);
+}
+.chip.is-active {
+  background: var(--color-ink);
+  color: var(--color-paper-card);
+  border-color: var(--color-ink);
+}
+.chip--tag.is-active {
+  background: var(--color-teal);
+  border-color: var(--color-teal);
+}
+
+/* ---- 地點庫：地點卡片 ---- */
+.place-card {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  background: var(--color-paper-card);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-2);
+  box-shadow: var(--shadow-card);
+}
+.place-card__name { font-weight: 600; font-size: 0.92rem; }
+.place-card__meta { font-size: 0.76rem; color: var(--color-ink-soft); margin-top: 2px; }
+.place-card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: var(--space-2);
+}
+.place-card__tag {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  color: var(--color-teal);
+  border: 1px solid var(--color-teal);
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+
+/* ---- 每日行程：日期分頁 ---- */
+.day-tabs {
+  display: flex;
+  gap: var(--space-2);
+  overflow-x: auto;
+  padding-bottom: var(--space-1);
+  margin-top: var(--space-2);
+}
+.day-tab {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  border: 1px solid var(--color-line-soft);
+  background: var(--color-paper-card);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--color-ink-soft);
+}
+.day-tab span { font-size: 0.68rem; opacity: 0.8; }
+.day-tab.is-active {
+  background: var(--color-ink);
+  color: var(--color-paper-card);
+  border-color: var(--color-ink);
+}
+
+/* ---- 住宿色帶 ---- */
+.stay-band {
+  margin-top: var(--space-3);
+  margin-bottom: var(--space-4);
+  background: var(--color-gold-wash);
+  border-left: 3px solid var(--color-gold);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  padding: var(--space-2) var(--space-3);
+  font-size: 0.82rem;
+  color: var(--color-ink);
+}
+
+/* ---- 行程項目 ---- */
+.itinerary-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  background: var(--color-paper-card);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+  margin-bottom: var(--space-2);
+  box-shadow: var(--shadow-card);
+}
+.itinerary-item__order {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.reorder-btn {
+  border: none;
+  background: none;
+  color: var(--color-ink-soft);
+  font-size: 0.6rem;
+  padding: 2px 4px;
+  line-height: 1;
+}
+.reorder-btn:disabled { opacity: 0.25; }
+
+.itinerary-item__time {
+  flex-shrink: 0;
+  width: 56px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding-right: var(--space-3);
+  border-right: 1px dashed var(--color-line);
+}
+.itinerary-item__time-value {
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-ink);
+  letter-spacing: -0.02em;
+  white-space: nowrap; /* 瀏覽器會把 "-" 當成可斷行點，不加這個「--:--」會被從中間斷開 */
+}
+.itinerary-item__time-value--empty {
+  color: var(--color-ink-soft);
+  font-weight: 400;
+}
+.itinerary-item__time-icon {
+  font-size: 0.85rem;
+  color: var(--color-teal);
+}
+.itinerary-item__time-icon svg {
+  width: 14px;
+  height: 14px;
+  display: block;
+}
+
+/* ---- 行程分類／清單分類圖示（取代原本的 emoji） ---- */
+.list-type-icon {
+  display: inline-flex;
+  vertical-align: -3px;
+  margin-right: 5px;
+}
+.list-type-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.itinerary-item__main {
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  padding: 2px 4px;
+  margin: -2px -4px;
+}
+.itinerary-item__main:hover { background: rgba(23, 35, 61, 0.03); }
+.itinerary-item__title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.05rem;
+  color: var(--color-ink);
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+.itinerary-item__sub {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+  font-size: 0.78rem;
+  color: var(--color-ink-soft);
+}
+.itinerary-item__tag {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.03em;
+  background: none;
+  border: 1px solid var(--tag-color, var(--color-line));
+  color: var(--tag-color, var(--color-ink-soft));
+  border-radius: 999px;
+  padding: 1px 9px;
+}
+[data-theme="dark"] .itinerary-item__tag {
+  border-color: var(--tag-color-dark, var(--color-line));
+  color: var(--tag-color-dark, var(--color-ink-soft));
+}
+.maps-link {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--color-teal);
+  text-decoration: none;
+  border: 1px solid var(--color-teal);
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+.maps-link:hover { background: var(--color-teal); color: var(--color-paper-card); }
+
+/* ---- 固定列：航班（置頂）／住宿（置底），不可手動排序 ---- */
+.itinerary-pin {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  background: var(--color-paper-card);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+  margin-bottom: var(--space-2);
+  box-shadow: var(--shadow-card);
+  cursor: pointer;
+}
+.itinerary-pin:hover { background: rgba(23, 35, 61, 0.03); }
+.itinerary-pin--flight { border-left: 3px solid var(--color-teal); }
+.itinerary-pin--stay { border-left: 3px solid var(--color-gold); }
+.itinerary-pin__tag {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.03em;
+  color: var(--color-ink-soft);
+  padding-top: 2px;
+  width: 52px;
+}
+.itinerary-pin__title { font-weight: 600; font-size: 0.9rem; }
+.itinerary-pin__line {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--color-ink-soft);
+  margin-top: 2px;
+}
+
+/* ---- 地點詳情：類別／自訂分類徽章（同大小、並排顯示） ---- */
+.detail-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+.detail-badge {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.03em;
+  border: 1px solid var(--color-line);
+  border-radius: 999px;
+  padding: 2px 10px;
+  color: var(--color-ink-soft);
+}
+.detail-badge--tag {
+  border-color: var(--color-teal);
+  color: var(--color-teal);
+}
+
+/* ---- 地點詳情檢視 ---- */
+.detail-row {
+  margin-bottom: var(--space-3);
+}
+.detail-row__label {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.03em;
+  color: var(--color-ink-soft);
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+.detail-row__value {
+  font-size: 0.9rem;
+  color: var(--color-ink);
+  line-height: 1.5;
+}
+.detail-row__value a {
+  color: var(--color-teal);
+}
+
+/* ---- 地圖頁面 ---- */
+.trip-map {
+  width: 100%;
+  height: 62vh;
+  min-height: 360px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  margin-top: var(--space-3);
+  box-shadow: var(--shadow-card);
+  background: var(--color-line);
+}
+
+.map-hint {
+  margin-top: var(--space-3);
+  font-size: 0.82rem;
+  color: var(--color-ink-soft);
+  text-align: center;
+}
+
+.map-number-icon span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid var(--color-paper-card);
+  color: #fbfbf8;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  box-shadow: var(--shadow-card);
+}
+
+/* ---- 地圖 Marker Popup ----
+   Leaflet 彈出視窗背景固定是白色（沒有跟著深色模式變），
+   所以這裡的文字顏色也要固定用深色，不能用 var(--color-ink) 等
+   會隨主題變化的變數，不然深色模式下會變成「淺色文字配白色背景」看不清楚。 */
+.map-popup__title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #37352f;
+}
+.map-popup__meta {
+  font-size: 0.75rem;
+  color: #787774;
+  margin-top: 2px;
+}
+.map-popup__actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+.map-popup__btn {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: #9f6b53;
+  text-decoration: none;
+  border: 1px solid #9f6b53;
+  border-radius: 999px;
+  padding: 2px 10px;
+  background: none;
+  cursor: pointer;
+}
+.map-popup__btn:hover { background: #9f6b53; color: #fbfbf8; }
+
+.leaflet-popup-content-wrapper {
+  background: #fbfbf8;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+}
+.leaflet-popup-content { margin: var(--space-3); }
+.leaflet-popup-tip { background: #fbfbf8; }
+
+/* ---- 設定頁面 ---- */
+.settings-section {
+  margin-bottom: var(--space-2);
+}
+.settings-section__title {
+  font-size: 0.95rem;
+  margin-bottom: var(--space-3);
+}
+.settings-hint {
+  font-size: 0.78rem;
+  color: var(--color-ink-soft);
+  margin-top: var(--space-2);
+  line-height: 1.5;
+}
+
+.segmented {
+  display: flex;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.segmented__item {
+  flex: 1;
+  border: none;
+  background: var(--color-paper-card);
+  color: var(--color-ink-soft);
+  padding: var(--space-3) var(--space-2);
+  font-size: 0.82rem;
+  border-right: 1px solid var(--color-line);
+}
+.segmented__item:last-child { border-right: none; }
+.segmented__item.is-active {
+  background: var(--color-ink);
+  color: var(--color-paper-card);
+}
+
+/* ---- 清單（行李／願望／必買）---- */
+.quick-add {
+  display: flex;
+  gap: var(--space-2);
+  margin: var(--space-4) 0;
+}
+.quick-add input {
+  flex: 1;
+  padding: var(--space-3);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  background: var(--color-paper-card);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  color: var(--color-ink);
+}
+.quick-add input:focus {
+  outline: 2px solid var(--color-gold);
+  outline-offset: 1px;
+}
+.quick-add .btn {
+  width: 48px;
+  flex-shrink: 0;
+  font-size: 1.2rem;
+  padding: 0;
+}
+
+.checklist-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  background: var(--color-paper-card);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+  margin-bottom: var(--space-2);
+  box-shadow: var(--shadow-card);
+}
+.checklist-item__checkbox {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  margin: 2px 0 0 0;
+  padding: 0;
+  border: 1.5px solid var(--color-line);
+  border-radius: 4px;
+  background: var(--color-paper-card);
+  flex-shrink: 0;
+  cursor: pointer;
+  position: relative;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.checklist-item__checkbox:checked {
+  background: var(--color-teal);
+  border-color: var(--color-teal);
+}
+.checklist-item__checkbox:checked::after {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 1px;
+  width: 5px;
+  height: 9px;
+  border: solid var(--color-paper-card);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+.checklist-item__checkbox:focus-visible {
+  outline: 2px solid var(--color-gold);
+  outline-offset: 2px;
+}
+.checklist-item__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  padding: 2px 4px;
+  margin: -2px -4px;
+}
+.checklist-item__body:hover { background: rgba(23, 35, 61, 0.03); }
+.checklist-item__text {
+  font-size: 0.92rem;
+  color: var(--color-ink);
+  overflow-wrap: anywhere;
+}
+.checklist-item.is-done .checklist-item__text {
+  color: var(--color-ink-soft);
+  text-decoration: line-through;
+}
+.checklist-item__meta {
+  font-size: 0.78rem;
+  color: var(--color-ink-soft);
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+}
+.checklist-item__meta a { color: var(--color-teal); }
+.checklist-item__actions {
+  display: flex;
+  gap: var(--space-1);
+  flex-shrink: 0;
+}
+
+/* ---- 通用表單 checkbox 選項列（例如分享 Modal 的「包含清單內容」） ---- */
+.form-checkbox-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  cursor: pointer;
+}
+.form-checkbox-row input[type="checkbox"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  margin: 2px 0 0 0;
+  padding: 0;
+  border: 1.5px solid var(--color-line);
+  border-radius: 4px;
+  background: var(--color-paper-card);
+  flex-shrink: 0;
+  cursor: pointer;
+  position: relative;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.form-checkbox-row input[type="checkbox"]:checked {
+  background: var(--color-teal);
+  border-color: var(--color-teal);
+}
+.form-checkbox-row input[type="checkbox"]:checked::after {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 1px;
+  width: 5px;
+  height: 9px;
+  border: solid var(--color-paper-card);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+.form-checkbox-row input[type="checkbox"]:focus-visible {
+  outline: 2px solid var(--color-gold);
+  outline-offset: 2px;
+}
+.form-checkbox-row__body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.form-checkbox-row__title {
+  font-size: 0.92rem;
+  color: var(--color-ink);
+}
+.form-checkbox-row__hint {
+  font-size: 0.76rem;
+  color: var(--color-ink-soft);
+}
+
+/* ---- 頁面即將推出提示 ---- */
+.stub-page {
+  text-align: center;
+  padding: var(--space-7) var(--space-4);
+  color: var(--color-ink-soft);
+}
+
+.stub-page__badge {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-teal);
+  border: 1px solid var(--color-teal);
+  border-radius: 999px;
+  padding: 2px 10px;
+  margin-bottom: var(--space-3);
+}

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Travel Planner</title>
+  <meta name="theme-color" content="#37352f" />
+  <link rel="manifest" href="./manifest.json" />
+  <!-- iPhone「加入主畫面」用：圖示、全螢幕模式、主畫面上顯示的名稱 -->
+  <link rel="apple-touch-icon" href="./public/icons/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" href="./public/icons/icon-192.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="旅行規劃" />
+  <link rel="stylesheet" href="./src/styles/tokens.css" />
+  <link rel="stylesheet" href="./src/styles/base.css" />
+  <link rel="stylesheet" href="./src/styles/components.css" />
+</head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <div>
+        <div class="topbar__eyebrow" id="topbar-eyebrow">TRIPS</div>
+        <div class="topbar__title" id="topbar-title">我的旅程</div>
+      </div>
+    </header>
+
+    <main id="app-view"></main>
+
+    <div id="nav-slot"></div>
+  </div>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>

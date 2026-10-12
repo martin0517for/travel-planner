@@ -1,0 +1,67 @@
+/* ============================================
+   Travel Planner — Design Tokens
+   概念：登機證 / 機場翻牌顯示器（Split-Flap Display）
+   簽名元素：撕票孔洞分隔線（perforation divider）＋ 翻牌倒數數字
+   ============================================ */
+
+:root {
+  /* ---- 色彩：Notion 風格黑白灰，不用 indigo／藍紫色系 ---- */
+  --color-ink: #37352f;          /* Notion 招牌的暖黑色文字，不是純黑 */
+  --color-ink-soft: #787774;     /* 次要文字，中灰 */
+  --color-paper: #f7f7f5;        /* 頁面底色，Notion 經典淺灰 */
+  --color-paper-card: #ffffff;   /* 卡片／表面，純白 */
+  --color-line: #e9e9e7;         /* 分隔線／邊框，極淺灰 */
+  --color-gold: #37352f;         /* 主要強調色：黑，取代原本的琥珀金，按鈕/連結/active 都用這個 */
+  --color-teal: #9f6b53;         /* 次要強調色：Notion 棕色調，取代原本的湖水綠 */
+  --color-coral: #cb4b4b;        /* 警示／刪除：Notion 紅，比較柔和不刺眼 */
+  --color-stub: #191919;         /* 票根色塊：固定純黑，深色模式也不反轉，維持登機證識別 */
+  --color-backdrop: rgba(55, 53, 47, 0.4); /* Modal 背後的遮罩色 */
+  --color-gold-wash: rgba(55, 53, 47, 0.06); /* 住宿色帶底色 */
+  --color-line-soft: var(--color-line); /* 小方塊（day-tab／chip）用的柔和邊框，淺色模式跟一般分隔線一樣 */
+
+  /* ---- 字體 ---- */
+  --font-display: "Space Grotesk", -apple-system, "PingFang TC", "Microsoft JhengHei", sans-serif;
+  --font-body: "Inter", -apple-system, "PingFang TC", "Microsoft JhengHei", sans-serif;
+  --font-mono: "Roboto Mono", "Courier New", monospace;
+
+  /* ---- 間距（8px 基準） ---- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  /* ---- 圓角／陰影 ---- */
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --shadow-card: 0 1px 2px rgba(27, 39, 64, 0.06), 0 4px 12px rgba(27, 39, 64, 0.06);
+
+  /* ---- 版面 ---- */
+  --nav-height: 64px;
+  --topbar-height: 56px;
+  /* iPhone 瀏海／底部橫條的安全區域；非 iPhone 或一般瀏覽器時為 0 */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --max-width: 560px;
+}
+
+/* ---- 深色模式：色彩變數整套覆蓋，元件本身不用改 ---- */
+[data-theme="dark"] {
+  --color-ink: #e9e9e7;
+  --color-ink-soft: #9b9a97;
+  --color-paper: #191919;
+  --color-paper-card: #2f2f2f;
+  --color-line: #424242;          /* 加亮，在深色卡片上才看得清楚邊界 */
+  --color-gold: #e9e9e7;          /* 深色模式下主強調色改用淺灰白，黑色在深色背景上沒有對比 */
+  --color-teal: #c99b7c;
+  --color-coral: #e07a7a;
+  --color-backdrop: rgba(0, 0, 0, 0.6); /* 遮罩加深，Modal 卡片才能從背景浮出來 */
+  --color-gold-wash: rgba(233, 233, 231, 0.08);
+  --color-line-soft: #333333; /* 比卡片底色略亮一點點，若隱若現的邊界，不搶眼 */
+  /* 卡片陰影在深色背景幾乎看不見，且細框容易讓每個卡片變得像「被框起來」，
+     改成只留柔和陰影營造層次，卡片主要靠底色（--color-paper-card）跟頁面
+     背景（--color-paper）的深淺差異來分辨，跟 Gmail 這類簡潔深色 UI 一致。 */
+  --shadow-card: 0 4px 14px rgba(0, 0, 0, 0.4);
+}
