@@ -41,9 +41,18 @@ export function parseCoordinates(text) {
   const s = text.trim().slice(0, 2000);
   if (!s) return null;
 
-  // 直接是座標
-  let m = s.match(new RegExp(`^${NUM}\\s*[,，]\\s*${NUM}$`));
+  // 直接是座標。容許常見的複製格式（2026-10-13 實機回報「(35.71, 139.79)」無法辨識）：
+  //   35.71, 139.79　／　(35.71, 139.79)　／　[35.71,139.79]　／　35.71 139.79
+  //   35.71° N, 139.79° E（南緯 S、西經 W 會轉成負數）
+  const bare = s.replace(/[()（）\[\]{}「」]/g, "").trim();
+  let m = bare.match(new RegExp(`^${NUM}\\s*[,，\\s]\\s*${NUM}$`));
   if (m) return toPair(m[1], m[2]);
+  m = bare.match(/^(\d{1,3}(?:\.\d+)?)\s*°?\s*([NSns])\s*[,，]?\s*(\d{1,3}(?:\.\d+)?)\s*°?\s*([EWew])$/);
+  if (m) {
+    const lat = Number(m[1]) * (/[Ss]/.test(m[2]) ? -1 : 1);
+    const lng = Number(m[3]) * (/[Ww]/.test(m[4]) ? -1 : 1);
+    return toPair(lat, lng);
+  }
 
   let decoded = s;
   try {
