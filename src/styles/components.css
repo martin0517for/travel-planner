@@ -174,17 +174,15 @@ body.has-page-sheet #app { display: none; }
 }
 .sheet-page .sheet {
   margin: 0 auto;
-  padding: 0 calc(var(--space-4) + var(--safe-right)) calc(var(--space-7) + var(--safe-bottom)) calc(var(--space-4) + var(--safe-left));
+  /* 底部多留半個螢幕的空白：點最下面幾欄時，iPhone 有足夠空間把欄位捲到鍵盤上方，
+     不會因為頁面不夠長而把整頁往回拉 */
+  padding: 0 calc(var(--space-4) + var(--safe-right)) calc(50vh + var(--safe-bottom)) calc(var(--space-4) + var(--safe-left));
 }
 .sheet-page .sheet__handle { display: none; }
-/* 標題列固定在畫面最上方，捲動時 × 一直按得到 */
+/* 標題列：不固定（2026-10-13 實機：鍵盤開著時，固定在上方的標題列會一下出現一下消失） */
 .sheet-page .sheet__header {
-  position: sticky;
-  top: 0;
-  z-index: 1;
   margin: 0 calc(-1 * var(--space-4)) var(--space-4);
   padding: calc(var(--safe-top) + var(--space-2)) var(--space-4) var(--space-2);
-  background: var(--color-paper);
   border-bottom: 1px solid var(--color-line);
 }
 .sheet__handle {
