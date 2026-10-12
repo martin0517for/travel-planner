@@ -15,7 +15,6 @@ import { openPlaceForm } from "./placeForm.js";
 export function openPlaceDetail({ place, onChanged }) {
   const nav = navigationUrl(place);
   const website = safeUrl(place.website);
-  const mapLink = safeUrl(place.mapsUrl);
   const hasCoords = isValidLatLng(place.lat, place.lng);
 
   openSheet({
@@ -35,13 +34,10 @@ export function openPlaceDetail({ place, onChanged }) {
           ? html`<a class="btn btn--ghost" href="${website}" target="_blank" rel="noopener noreferrer">${icon("globe")}官網</a>`
           : ""}
       </div>
-      ${place.searchName ? detailRow("Google 地圖搜尋名稱", place.searchName) : ""}
+      <p class="field__hint nav-hint">${safeUrl(place.mapsUrl) ? "導航會打開保存的 Google 地圖連結" : "沒有保存 Google 地圖連結，導航會用「名稱＋地區」搜尋"}</p>
 
       ${place.address ? detailRow("地址", place.address) : ""}
       ${detailRow("座標", hasCoords ? `${place.lat}, ${place.lng}` : "尚未設定（不會顯示在 App 的地圖上）")}
-      ${mapLink
-        ? detailRow("地圖連結", html`<a href="${mapLink}" target="_blank" rel="noopener noreferrer">開啟保存的地圖連結</a>`)
-        : ""}
       ${place.notes ? detailRow("備註", linkify(place.notes), true) : ""}
 
       <div class="form__actions form__actions--spaced">

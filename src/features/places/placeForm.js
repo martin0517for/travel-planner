@@ -6,9 +6,10 @@
  *   defaults  新增時的預設值（例如列表正篩選「東京」時，地區先帶入東京）
  *   onSaved(place)  存好之後呼叫（之後「選擇地點」時新增完可以直接選用）
  *
- * 位置（座標）有兩種設定方式：
+ * 「Google 地圖連結」：從 Google 地圖「分享」複製的連結，按「導航」時直接打開它。
+ * 「地圖標示位置（座標）」：只用在 App 內的地圖標示，有兩種設定方式：
  *   1. 「用名稱搜尋」：用 OpenStreetMap 搜尋，從結果中點選
- *   2. 「貼上地圖連結或座標」：從 Google／Apple 地圖複製後貼上，自動解析座標
+ *   2. 貼上座標（或含座標的完整地圖連結），自動解析
  */
 import { html, render } from "../../core/html.js";
 import { icon } from "../../core/icons.js";
@@ -19,12 +20,11 @@ import { parseCoordinates, looksLikeMapUrl, searchPlaces, isValidLatLng } from "
 export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted } = {}) {
   const isEdit = Boolean(place);
   const v = place || {
-    name: "", searchName: "", category: defaults.category || "attraction", area: defaults.area || "",
+    name: "", category: defaults.category || "attraction", area: defaults.area || "",
     tags: [], address: "", lat: null, lng: null, mapsUrl: "", website: "", notes: "",
   };
   // 位置的暫存狀態（按「儲存」才會寫入）
   let coords = isValidLatLng(v.lat, v.lng) ? { lat: v.lat, lng: v.lng } : null;
-  let mapsUrl = v.mapsUrl || "";
   const areas = placeStore.areas();
 
   openSheet({
@@ -35,13 +35,6 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
           <label for="pl-title">名稱 <span class="field__required">必填</span></label>
           <input id="pl-title" name="placeTitle" type="search" enterkeyhint="done" maxlength="${LIMITS.name}" autocomplete="off" autocorrect="off"
                  placeholder="例如：淺草寺" value="${v.name}" />
-        </div>
-
-        <div class="field">
-          <label for="pl-gname">Google 地圖搜尋名稱</label>
-          <input id="pl-gname" name="placeGName" type="search" enterkeyhint="done" maxlength="${LIMITS.searchName}"
-                 autocomplete="off" autocorrect="off" placeholder="選填，例如日文原名：浅草寺" value="${v.searchName}" />
-          <p class="field__hint field__hint--tight">按「導航」時用這個名稱在 Google 地圖搜尋；沒填就用「名稱＋地區」。</p>
         </div>
 
         <fieldset class="field">
@@ -68,8 +61,15 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
             : ""}
         </div>
 
+        <div class="field">
+          <label for="pl-mapurl">Google 地圖連結</label>
+          <input id="pl-mapurl" name="placeMapUrl" type="search" enterkeyhint="done" inputmode="url" autocomplete="off"
+                 autocorrect="off" autocapitalize="off" placeholder="https://maps.app.goo.gl/…" value="${v.mapsUrl}" />
+          <p class="field__hint field__hint--tight">在 Google 地圖按「分享」→「複製連結」貼上。按「導航」會直接打開這個連結；沒填就用名稱搜尋。</p>
+        </div>
+
         <fieldset class="field location">
-          <legend class="field__legend">位置</legend>
+          <legend class="field__legend">地圖標示位置（座標）</legend>
           <div class="location__status" id="pl-loc-status"></div>
 
           <button type="button" class="btn btn--ghost btn--block" data-action="search">${icon("search")}用名稱搜尋位置</button>
@@ -77,10 +77,10 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
 
           <div class="location__paste">
             <input id="pl-paste" type="search" enterkeyhint="done" inputmode="url" autocomplete="off"
-                   placeholder="或貼上 Google／Apple 地圖連結、座標" />
+                   placeholder="或貼上座標，例如 35.71, 139.79" />
             <button type="button" class="btn btn--small" data-action="parse">套用</button>
           </div>
-          <p class="field__hint" id="pl-paste-msg">Google 地圖長按地點，可以複製「35.71, 139.79」這樣的座標貼上。</p>
+          <p class="field__hint" id="pl-paste-msg">只用在 App 內的地圖標示。Google 地圖長按地點，可以複製座標貼上。</p>
         </fieldset>
 
         <div class="field">
@@ -122,6 +122,7 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
       const pasteInput = panel.querySelector("#pl-paste");
       const pasteMsg = panel.querySelector("#pl-paste-msg");
       const searchBtn = panel.querySelector('[data-action="search"]');
+      const mapUrlInput = form.elements.placeMapUrl;
 
       function paintStatus() {
         render(
@@ -131,7 +132,7 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
                 <span class="location__ok">${icon("pin")}已定位 <span class="mono">${coords.lat}, ${coords.lng}</span></span>
                 <button type="button" class="link-btn" data-action="clear-coords">清除</button>
               `
-            : html`<span class="muted">尚未定位（不會顯示在 App 的地圖上）${mapsUrl ? "・已保存地圖連結" : ""}</span>`
+            : html`<span class="muted">尚未定位（不會顯示在 App 的地圖上）</span>`
         );
         const clear = statusBox.querySelector('[data-action="clear-coords"]');
         if (clear) clear.addEventListener("click", () => { coords = null; paintStatus(); });
@@ -145,9 +146,7 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
 
       // 1. 用名稱搜尋
       searchBtn.addEventListener("click", async () => {
-        // 有填搜尋名稱就用它（通常是當地語言，比較容易找到），沒有就用名稱＋地區
-        const gname = form.elements.placeGName.value.trim();
-        const query = gname || [form.elements.placeTitle.value, form.elements.area.value].filter((s) => s.trim()).join(" ");
+        const query = [form.elements.placeTitle.value, form.elements.area.value].filter((s) => s.trim()).join(" ");
         searchBtn.disabled = true;
         render(resultsBox, html`<p class="muted">搜尋中…</p>`);
         try {
@@ -173,8 +172,6 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
             b.addEventListener("click", () => {
               const r = results[Number(b.dataset.index)];
               coords = { lat: r.lat, lng: r.lng };
-              // 搜尋名稱還空著的話，帶入搜尋結果的名稱（通常是當地語言）
-              if (!form.elements.placeGName.value.trim() && r.name) form.elements.placeGName.value = r.name.slice(0, LIMITS.searchName);
               if (!form.elements.placeAddr.value.trim()) form.elements.placeAddr.value = r.address.slice(0, LIMITS.address);
               render(resultsBox, html``);
               paintStatus();
@@ -187,24 +184,33 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
         }
       });
 
-      // 2. 貼上連結或座標
+      // 2. 貼上座標（也接受含座標的完整地圖連結；是地圖連結且上方連結欄還空著，就順便填進去）
       function applyPaste() {
         const text = pasteInput.value.trim();
         if (!text) return;
         const found = parseCoordinates(text);
         const url = looksLikeMapUrl(text);
-        if (url) mapsUrl = url;
+        if (url && !mapUrlInput.value.trim()) mapUrlInput.value = url;
         if (found) {
           coords = found;
-          pasteMsg.textContent = "已從連結取得座標。";
+          pasteMsg.textContent = "已取得座標。";
         } else if (url) {
-          pasteMsg.textContent = "這個連結裡沒有座標（短網址無法解析），已保存連結，可在預覽裡打開。要在 App 地圖上顯示，請改用「用名稱搜尋」。";
+          pasteMsg.textContent = "這個連結裡沒有座標（短網址無法解析），已填入上方的 Google 地圖連結。要在 App 地圖上標示，請改用「用名稱搜尋位置」或貼上座標。";
         } else {
-          pasteMsg.textContent = "看不懂這段內容。請貼上地圖連結，或「35.71, 139.79」格式的座標。";
+          pasteMsg.textContent = "看不懂這段內容。請貼上「35.71, 139.79」格式的座標。";
         }
         pasteInput.value = "";
         paintStatus();
       }
+
+      // 連結欄：貼上的完整連結裡如果有座標、而且還沒定位，順便帶入座標
+      mapUrlInput.addEventListener("change", () => {
+        const found = parseCoordinates(mapUrlInput.value);
+        if (found && !coords) {
+          coords = found;
+          paintStatus();
+        }
+      });
       panel.querySelector('[data-action="parse"]').addEventListener("click", applyPaste);
       pasteInput.addEventListener("paste", () => setTimeout(applyPaste, 0));
 
@@ -218,14 +224,13 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
         e.preventDefault();
         const input = {
           name: form.elements.placeTitle.value,
-          searchName: form.elements.placeGName.value,
           category: form.elements.category.value,
           area: form.elements.area.value,
           tags: form.elements.tags.value,
           address: form.elements.placeAddr.value,
           lat: coords ? coords.lat : null,
           lng: coords ? coords.lng : null,
-          mapsUrl,
+          mapsUrl: mapUrlInput.value,
           website: form.elements.website.value,
           notes: form.elements.notes.value,
         };
