@@ -8,6 +8,7 @@
     內容安全政策（CSP）：只允許載入這裡列出的來源，其他一律擋掉。
     就算有惡意文字混進畫面，也無法載入外部程式或把資料送出去。
     之後加地圖、天氣、匯率時，要在對應的項目補上它們的網域。
+    目前允許連線的外部服務：nominatim.openstreetmap.org（地點搜尋，只在按「搜尋」時送出搜尋文字）。
     注意：style-src 沒有開放 'unsafe-inline'，所以 HTML 裡不能寫 style="..."，樣式一律寫在 CSS 檔。
   -->
   <meta http-equiv="Content-Security-Policy" content="
@@ -16,7 +17,7 @@
     style-src 'self';
     font-src 'self';
     img-src 'self' data: blob:;
-    connect-src 'self';
+    connect-src 'self' https://nominatim.openstreetmap.org;
     manifest-src 'self';
     worker-src 'self';
     object-src 'none';
@@ -45,6 +46,7 @@
   <link rel="stylesheet" href="./src/styles/shell.css" />
   <link rel="stylesheet" href="./src/styles/components.css" />
   <link rel="stylesheet" href="./src/styles/trips.css" />
+  <link rel="stylesheet" href="./src/styles/places.css" />
 </head>
 <body>
   <div id="app">

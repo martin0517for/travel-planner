@@ -16,12 +16,15 @@ import { renderPlaceholder } from "./features/shell/placeholder.js";
 import { renderTripList } from "./features/trips/tripList.js";
 import { renderTripOverview } from "./features/trips/tripOverview.js";
 import { tripStore } from "./data/trips.js";
+import { renderPlaceList } from "./features/places/placeList.js";
 
 applyTheme("system");
 watchSystemTheme(() => "system");
 
-// 記住「進設定頁之前」在哪一頁，設定頁的返回鍵才能回到原處
-let lastNonSettingsPath = "/trips";
+// 「地點資料庫」和「設定」是全域頁面（從右上角進入），
+// 記住進去之前在哪一頁，它們的返回鍵才能回到原處
+const GLOBAL_PAGES = new Set(["/places", "/settings"]);
+let lastMainPath = "/trips";
 
 /**
  * 旅程內的頁面共用這個包裝：先用網址的 id 找旅程，找不到就顯示「找不到」，
@@ -48,9 +51,10 @@ const routes = {
   "/trips/:id/schedule": tripPage("schedule", "Schedule", comingSoon("行程")),
   "/trips/:id/map": tripPage("map", "Map", comingSoon("地圖")),
   "/trips/:id/lists": tripPage("lists", "Lists", comingSoon("清單")),
+  "/places": (container) => ({ ...renderPlaceList(container), back: lastMainPath, page: "places" }),
   "/settings": (container) => {
     renderPlaceholder(container, { heading: "設定", note: "深色模式、資料備份等設定會放在這裡。" });
-    return { eyebrow: "Settings", title: "設定", back: lastNonSettingsPath, hideSettings: true };
+    return { eyebrow: "Settings", title: "設定", back: lastMainPath, page: "settings" };
   },
 };
 
@@ -67,8 +71,8 @@ const router = createRouter({
   onRoute({ pattern, params, handler }) {
     const meta = handler(page, params);
     renderShell(meta);
-    if (pattern !== "/settings") {
-      lastNonSettingsPath = window.location.hash.replace(/^#/, "") || "/trips";
+    if (!GLOBAL_PAGES.has(pattern)) {
+      lastMainPath = window.location.hash.replace(/^#/, "") || "/trips";
     }
   },
   onNavigate() {

@@ -7,7 +7,7 @@
  *   back      返回按鈕要去的路徑；null 表示不顯示返回
  *   tripId    有值代表在某趟旅程裡 → 顯示底部 4 頁籤導覽
  *   active    底部導覽目前在哪一頁："overview" | "schedule" | "map" | "lists"
- *   hideSettings  true 時右上角不顯示齒輪（設定頁本身）
+ *   page      "settings" | "places"：目前在這兩個全域頁面時，右上角就不顯示自己的圖示
  */
 import { html, render } from "../../core/html.js";
 import { icon } from "../../core/icons.js";
@@ -25,7 +25,7 @@ export function renderShell(meta) {
   document.title = meta.title ? `${meta.title}｜旅行規劃` : "旅行規劃";
 }
 
-function renderTopbar({ eyebrow, title, back, hideSettings }) {
+function renderTopbar({ eyebrow, title, back, page }) {
   const topbar = document.getElementById("topbar");
   render(
     topbar,
@@ -37,9 +37,10 @@ function renderTopbar({ eyebrow, title, back, hideSettings }) {
         <div class="topbar__eyebrow">${eyebrow}</div>
         <h1 class="topbar__title">${title}</h1>
       </div>
-      ${hideSettings
-        ? html`<span class="icon-btn icon-btn--placeholder" aria-hidden="true"></span>`
-        : html`<a class="icon-btn" href="#/settings" aria-label="設定">${icon("settings")}</a>`}
+      <div class="topbar__actions">
+        ${page === "places" ? "" : html`<a class="icon-btn" href="#/places" aria-label="地點資料庫">${icon("places")}</a>`}
+        ${page === "settings" ? "" : html`<a class="icon-btn" href="#/settings" aria-label="設定">${icon("settings")}</a>`}
+      </div>
     `
   );
 }

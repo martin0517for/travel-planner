@@ -56,6 +56,10 @@
 .icon-btn:active {
   background: var(--color-pressed);
 }
+.topbar__actions {
+  display: flex;
+  flex-shrink: 0;
+}
 /* 左右沒有按鈕時保留同樣寬度的空位，標題位置才不會跳動 */
 .icon-btn--placeholder {
   visibility: hidden;
