@@ -6,6 +6,8 @@
  *   defaults  新增時的預設值（例如列表正篩選「東京」時，地區先帶入東京）
  *   onSaved(place)  存好之後呼叫（之後「選擇地點」時新增完可以直接選用）
  *
+ * iPhone 鍵盤注意（2026-10-13）：所有文字欄位都用同一種鍵盤（不要加 inputmode="url"、不要用 datalist），
+ *   不同鍵盤高度不同（網址鍵盤沒有選字列），在欄位間切換時整個畫面會跟著跳。
  * 「Google 地圖連結」：從 Google 地圖「分享」複製的連結，按「導航」時直接打開它。
  * 「地圖標示位置（座標）」：只用在 App 內的地圖標示，有兩種設定方式：
  *   1. 搜尋框（預設等於名稱，可另外修改）：用 OpenStreetMap 搜尋，從結果中點選
@@ -54,8 +56,7 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
         <div class="field">
           <label for="pl-area">地區</label>
           <input id="pl-area" name="area" type="search" enterkeyhint="done" maxlength="${LIMITS.area}" autocomplete="off"
-                 list="pl-area-options" placeholder="例如：東京" value="${v.area}" />
-          <datalist id="pl-area-options">${areas.map((a) => html`<option value="${a}"></option>`)}</datalist>
+                 placeholder="例如：東京" value="${v.area}" />
           ${areas.length
             ? html`<div class="quick-picks">${areas.slice(0, 6).map((a) => html`<button type="button" class="tag tag--btn" data-area="${a}">${a}</button>`)}</div>`
             : ""}
@@ -63,7 +64,7 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
 
         <div class="field">
           <label for="pl-mapurl">Google 地圖連結</label>
-          <input id="pl-mapurl" name="placeMapUrl" type="search" enterkeyhint="done" inputmode="url" autocomplete="off"
+          <input id="pl-mapurl" name="placeMapUrl" type="search" enterkeyhint="done" autocomplete="off"
                  autocorrect="off" autocapitalize="off" placeholder="https://maps.app.goo.gl/…" value="${v.mapsUrl}" />
           <p class="field__hint field__hint--tight">在 Google 地圖按「分享」→「複製連結」貼上。按「導航」會直接打開這個連結；沒填就用名稱搜尋。</p>
         </div>
@@ -81,7 +82,7 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
           <div class="location__results" id="pl-results" aria-live="polite"></div>
 
           <div class="location__paste">
-            <input id="pl-paste" type="search" enterkeyhint="done" inputmode="url" autocomplete="off"
+            <input id="pl-paste" type="search" enterkeyhint="done" autocomplete="off"
                    placeholder="或貼上座標，例如 35.71, 139.79" />
             <button type="button" class="btn btn--small" data-action="parse">套用</button>
           </div>
@@ -101,7 +102,7 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
 
         <div class="field">
           <label for="pl-website">官網</label>
-          <input id="pl-website" name="website" type="search" enterkeyhint="done" inputmode="url" autocomplete="off" placeholder="https://"
+          <input id="pl-website" name="website" type="search" enterkeyhint="done" autocomplete="off" placeholder="https://"
                  value="${v.website}" />
         </div>
 
