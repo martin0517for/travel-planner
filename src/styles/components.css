@@ -131,8 +131,8 @@
 }
 .form__actions .btn { flex: 1; }
 
-/* ---- 底部滑出面板 ---- */
-/* 面板開啟時固定後面的頁面（top 由 sheet.js 設定成原本的捲動位置） */
+/* ---- 彈出畫面：預覽用「底部面板」、表單用「整頁」（見 core/sheet.js） ---- */
+/* 底部面板開啟時固定後面的頁面（top 由 sheet.js 設定成原本的捲動位置） */
 body.is-locked {
   position: fixed;
   left: 0;
@@ -149,22 +149,43 @@ body.is-locked {
   align-items: flex-end;
   justify-content: center;
   animation: fade-in 0.15s ease-out;
-  /* 鍵盤升起／收起時，面板高度平順地跟著變，不要一下子跳 */
-  transition: height 0.25s ease-out;
 }
 .sheet {
   width: 100%;
   max-width: var(--max-width);
-  /* 高度上限跟著外層（外層的高度 = 扣掉鍵盤後看得到的範圍，由 sheet.js 設定）。
-     舊寫法 92dvh 在 iPhone 鍵盤升起時不會變矮，表單上半部會跑到畫面外。 */
+  background: var(--color-paper);
+}
+.sheet-backdrop .sheet {
   max-height: calc(100% - var(--safe-top) - var(--space-2));
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;     /* 面板捲到底時不要帶動後面頁面 */
-  background: var(--color-paper);
   border-radius: var(--radius-md) var(--radius-md) 0 0;
   padding: var(--space-2) calc(var(--space-4) + var(--safe-right)) calc(var(--space-5) + var(--safe-bottom)) calc(var(--space-4) + var(--safe-left));
   animation: slide-up 0.22s ease-out;
+}
+
+/* 整頁表單：就是一般網頁內容，跟著整頁捲動，iPhone 會自己把輸入中的欄位捲到看得見的地方 */
+body.has-page-sheet #app { display: none; }
+.sheet-page {
+  min-height: 100dvh;
+  background: var(--color-paper);
+  animation: fade-in 0.15s ease-out;
+}
+.sheet-page .sheet {
+  margin: 0 auto;
+  padding: 0 calc(var(--space-4) + var(--safe-right)) calc(var(--space-7) + var(--safe-bottom)) calc(var(--space-4) + var(--safe-left));
+}
+.sheet-page .sheet__handle { display: none; }
+/* 標題列固定在畫面最上方，捲動時 × 一直按得到 */
+.sheet-page .sheet__header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  margin: 0 calc(-1 * var(--space-4)) var(--space-4);
+  padding: calc(var(--safe-top) + var(--space-2)) var(--space-4) var(--space-2);
+  background: var(--color-paper);
+  border-bottom: 1px solid var(--color-line);
 }
 .sheet__handle {
   width: 36px;
