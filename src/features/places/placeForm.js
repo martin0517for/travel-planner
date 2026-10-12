@@ -33,7 +33,7 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
       <form class="form" novalidate>
         <div class="field">
           <label for="pl-title">名稱 <span class="field__required">必填</span></label>
-          <input id="pl-title" name="placeTitle" type="text" maxlength="${LIMITS.name}" autocomplete="off" autocorrect="off"
+          <input id="pl-title" name="placeTitle" type="search" enterkeyhint="done" maxlength="${LIMITS.name}" autocomplete="off" autocorrect="off"
                  placeholder="例如：淺草寺" value="${v.name}" />
         </div>
 
@@ -53,7 +53,7 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
 
         <div class="field">
           <label for="pl-area">地區</label>
-          <input id="pl-area" name="area" type="text" maxlength="${LIMITS.area}" autocomplete="off"
+          <input id="pl-area" name="area" type="search" enterkeyhint="done" maxlength="${LIMITS.area}" autocomplete="off"
                  list="pl-area-options" placeholder="例如：東京" value="${v.area}" />
           <datalist id="pl-area-options">${areas.map((a) => html`<option value="${a}"></option>`)}</datalist>
           ${areas.length
@@ -69,7 +69,7 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
           <div class="location__results" id="pl-results" aria-live="polite"></div>
 
           <div class="location__paste">
-            <input id="pl-paste" type="text" inputmode="url" autocomplete="off"
+            <input id="pl-paste" type="search" enterkeyhint="done" inputmode="url" autocomplete="off"
                    placeholder="或貼上 Google／Apple 地圖連結、座標" />
             <button type="button" class="btn btn--small" data-action="parse">套用</button>
           </div>
@@ -78,18 +78,18 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
 
         <div class="field">
           <label for="pl-address">地址</label>
-          <input id="pl-address" name="placeAddr" type="text" maxlength="${LIMITS.address}" autocomplete="off" value="${v.address}" />
+          <input id="pl-address" name="placeAddr" type="search" enterkeyhint="done" maxlength="${LIMITS.address}" autocomplete="off" value="${v.address}" />
         </div>
 
         <div class="field">
           <label for="pl-tags">標籤</label>
-          <input id="pl-tags" name="tags" type="text" autocomplete="off" placeholder="用逗號分隔，例如：必訪, 雨天備案"
+          <input id="pl-tags" name="tags" type="search" enterkeyhint="done" autocomplete="off" placeholder="用逗號分隔，例如：必訪, 雨天備案"
                  value="${v.tags.join(", ")}" />
         </div>
 
         <div class="field">
           <label for="pl-website">官網</label>
-          <input id="pl-website" name="website" type="text" inputmode="url" autocomplete="off" placeholder="https://"
+          <input id="pl-website" name="website" type="search" enterkeyhint="done" inputmode="url" autocomplete="off" placeholder="https://"
                  value="${v.website}" />
         </div>
 

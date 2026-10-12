@@ -64,6 +64,7 @@
   color: var(--color-danger);
 }
 .field input[type="text"],
+.field input[type="search"],
 .field input[type="date"],
 .field textarea,
 .field select {
@@ -79,6 +80,16 @@
   font-size: 16px;                  /* 小於 16px 時 iPhone 會自動放大畫面 */
   -webkit-appearance: none;
   appearance: none;
+}
+/* 表單裡的文字欄位用 type="search"（iPhone 才不會跳「自動填寫聯絡人」），
+   這裡把搜尋框特有的外觀（圓角、放大鏡、清除鈕）去掉，看起來跟一般欄位一樣 */
+.field input[type="search"]::-webkit-search-decoration,
+.field input[type="search"]::-webkit-search-cancel-button,
+.location__paste input[type="search"]::-webkit-search-cancel-button,
+.location__paste input[type="search"]::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+  display: none;
 }
 /* iPhone 的日期欄位內容預設置中、高度也會跑掉，統一靠左 */
 .field input[type="date"] {
@@ -136,7 +147,9 @@ body.is-locked {
 .sheet {
   width: 100%;
   max-width: var(--max-width);
-  max-height: 92dvh;
+  /* 高度上限跟著外層（外層的高度 = 扣掉鍵盤後看得到的範圍，由 sheet.js 設定）。
+     舊寫法 92dvh 在 iPhone 鍵盤升起時不會變矮，表單上半部會跑到畫面外。 */
+  max-height: calc(100% - var(--safe-top) - var(--space-2));
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;     /* 面板捲到底時不要帶動後面頁面 */

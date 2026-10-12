@@ -18,12 +18,12 @@ export function openTripForm({ trip = null, onSaved, onDeleted } = {}) {
       <form class="form" novalidate>
         <div class="field">
           <label for="trip-title">旅程名稱 <span class="field__required">必填</span></label>
-          <input id="trip-title" name="tripTitle" type="text" maxlength="${NAME_MAX}" autocomplete="off"
+          <input id="trip-title" name="tripTitle" type="search" enterkeyhint="done" maxlength="${NAME_MAX}" autocomplete="off"
                  placeholder="例如：東京賞櫻" value="${v.name}" required />
         </div>
         <div class="field">
           <label for="trip-destination">目的地</label>
-          <input id="trip-destination" name="destination" type="text" maxlength="${DESTINATION_MAX}" autocomplete="off"
+          <input id="trip-destination" name="destination" type="search" enterkeyhint="done" maxlength="${DESTINATION_MAX}" autocomplete="off"
                  placeholder="例如：東京" value="${v.destination}" />
         </div>
         <div class="field-row">
