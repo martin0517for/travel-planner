@@ -5,6 +5,7 @@
 import { openChecklistItemForm } from "./checklistItemFormView.js";
 import { linkifyHtml } from "../../core/linkify.js";
 import { listHasPlaceField } from "../../data/models/ChecklistItem.js";
+import { photoThumbsHtml, bindPhotoThumbs } from "../photos/photoViewer.js";
 
 /**
  * 開啟清單項目預覽（唯讀）。點項目本身開這個，不是直接進編輯；
@@ -12,6 +13,7 @@ import { listHasPlaceField } from "../../data/models/ChecklistItem.js";
  */
 export function openChecklistItemDetailView({ tripId, listType, item, onEdited }) {
   const showPlace = listHasPlaceField(listType);
+  const photos = item.photos || [];
 
   const backdrop = document.createElement("div");
   backdrop.className = "modal-backdrop";
@@ -24,7 +26,12 @@ export function openChecklistItemDetailView({ tripId, listType, item, onEdited }
 
       ${showPlace && item.place ? detailRow("📍 地點", escapeHtml(item.place.name)) : ""}
       ${item.notes ? detailRow("備註", linkifyHtml(item.notes)) : ""}
-      ${!item.notes && !(showPlace && item.place) ? `<p class="settings-hint">還沒有其他內容，點「編輯」可以補上地點或備註。</p>` : ""}
+      ${photos.length ? detailRow(`照片 · ${photos.length}`, photoThumbsHtml(photos)) : ""}
+      ${
+        !item.notes && !(showPlace && item.place) && !photos.length
+          ? `<p class="settings-hint">還沒有其他內容，點「編輯」可以補上${showPlace ? "地點、" : ""}備註或照片。</p>`
+          : ""
+      }
 
       <div class="modal-actions">
         <button class="btn btn--ghost btn--block" data-action="close">關閉</button>
@@ -34,6 +41,7 @@ export function openChecklistItemDetailView({ tripId, listType, item, onEdited }
   `;
 
   document.body.appendChild(backdrop);
+  bindPhotoThumbs(backdrop, photos);
 
   function close() {
     backdrop.remove();

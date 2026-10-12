@@ -111,6 +111,7 @@ export const tripShareService = {
         isDone: false,
         placeId: remap(c.placeId),
         notes: c.notes || "",
+        photos: c.photos || [],
       });
     });
 

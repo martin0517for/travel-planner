@@ -1,5 +1,8 @@
 import { checklistRepository } from "../data/repositories/checklistRepository.js";
 import { placeRepository } from "../data/repositories/placeRepository.js";
+import { PHOTO_MAX_COUNT } from "../core/photos.js";
+
+const STORAGE_FULL_MSG = "手機本機空間不足，無法儲存。請移除部分照片後再試一次";
 
 /**
  * ChecklistService — 行李清單／記事本／必買清單共用同一個 service，
@@ -28,7 +31,9 @@ export const checklistService = {
       isDone: false,
       placeId: input.placeId ?? null,
       notes: (input.notes || "").trim(),
+      photos: input.photos || [],
     });
+    if (!checklistRepository.lastWriteOk) return { ok: false, errors: [STORAGE_FULL_MSG] };
     return { ok: true, item };
   },
 
@@ -39,7 +44,10 @@ export const checklistService = {
       text: input.text.trim(),
       placeId: input.placeId ?? null,
       notes: (input.notes || "").trim(),
+      // 沒傳 photos 就維持原本的照片不動（例如行李清單快速輸入列）
+      ...(input.photos ? { photos: input.photos } : {}),
     });
+    if (!checklistRepository.lastWriteOk) return { ok: false, errors: [STORAGE_FULL_MSG] };
     return { ok: true, item };
   },
 
@@ -57,6 +65,7 @@ export const checklistService = {
   validate(input) {
     const errors = [];
     if (!input.text || !input.text.trim()) errors.push("請輸入項目名稱");
+    if (input.photos && input.photos.length > PHOTO_MAX_COUNT) errors.push(`照片最多 ${PHOTO_MAX_COUNT} 張`);
     return errors;
   },
 };

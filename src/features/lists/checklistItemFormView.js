@@ -8,6 +8,15 @@ import { checklistService } from "../../services/checklistService.js";
 import { placeService } from "../../services/placeService.js";
 import { createChecklistItemDraft, listHasPlaceField } from "../../data/models/ChecklistItem.js";
 import { openPlacePicker } from "../places/placePickerView.js";
+import { openPhotoViewer } from "../photos/photoViewer.js";
+import { svgIcon } from "../../core/icons.js";
+import {
+  compressImage,
+  storageUsedChars,
+  photosChars,
+  PHOTO_MAX_COUNT,
+  STORAGE_BUDGET_CHARS,
+} from "../../core/photos.js";
 
 /**
  * 開啟清單項目表單。行李清單只有「項目」＋「備註」；記事本／必買清單多一個「地點」。
@@ -18,6 +27,11 @@ export function openChecklistItemForm({ tripId, listType, existingItem = null, o
   const isEdit = !!existingItem;
   const showPlace = listHasPlaceField(listType);
   let place = showPlace && draft.placeId ? placeService.getPlace(draft.placeId) : null;
+  // 表單裡目前的照片（還沒按儲存前都只在這裡，不會寫進 localStorage）
+  let photos = [...(draft.photos || [])];
+  // 這個項目原本已存的照片字元數：計算容量時要扣掉，因為儲存後會被 photos 取代
+  const savedPhotoChars = photosChars(existingItem?.photos);
+  let busy = false; // 壓縮中，暫時不能儲存
 
   const backdrop = document.createElement("div");
   backdrop.className = "modal-backdrop";
@@ -49,6 +63,16 @@ export function openChecklistItemForm({ tripId, listType, existingItem = null, o
       <div class="field">
         <label for="ci-notes">備註</label>
         <textarea id="ci-notes" rows="2" placeholder="可以貼網址，會自動變成可點擊連結">${escapeHtml(draft.notes)}</textarea>
+      </div>
+
+      <div class="field">
+        <div class="photo-field__label-row">
+          <label>照片</label>
+          <span class="photo-field__count" id="ci-photo-count"></span>
+        </div>
+        <div class="photo-row" id="ci-photo-row"></div>
+        <input type="file" id="ci-photo-input" accept="image/*" multiple style="display: none" />
+        <div class="photo-hint" id="ci-photo-hint"></div>
       </div>
 
       <div class="field" id="ci-errors" style="color: var(--color-coral); font-size: 0.85rem; display: none;"></div>
@@ -110,11 +134,83 @@ export function openChecklistItemForm({ tripId, listType, existingItem = null, o
     }
   }
 
+  // ---- 照片欄位 ----
+  const photoRow = backdrop.querySelector("#ci-photo-row");
+  const photoInput = backdrop.querySelector("#ci-photo-input");
+
+  /** 儲存後 localStorage 大約會用到多少字元 */
+  function projectedChars(extra = 0) {
+    return storageUsedChars() - savedPhotoChars + photosChars(photos) + extra;
+  }
+
+  function renderPhotos(message = "") {
+    photoRow.innerHTML =
+      photos
+        .map(
+          (src, i) => `
+        <div class="photo-thumb">
+          <img src="${src}" alt="" data-view="${i}" />
+          <button type="button" class="photo-thumb__remove" data-remove="${i}" aria-label="移除這張照片">&times;</button>
+        </div>`
+        )
+        .join("") +
+      (photos.length < PHOTO_MAX_COUNT
+        ? `<button type="button" class="photo-add-btn" data-action="add-photo" ${busy ? "disabled" : ""}>
+             ${svgIcon("photo")}<span>${busy ? "處理中" : "新增"}</span>
+           </button>`
+        : "");
+
+    backdrop.querySelector("#ci-photo-count").textContent = `${photos.length} / ${PHOTO_MAX_COUNT}`;
+    const percent = Math.min(100, Math.round((projectedChars() / STORAGE_BUDGET_CHARS) * 100));
+    const hint = backdrop.querySelector("#ci-photo-hint");
+    hint.classList.toggle("is-error", !!message);
+    hint.textContent = message || `最多 ${PHOTO_MAX_COUNT} 張，會自動壓縮後儲存於本機・本機空間已用 ${percent}%`;
+
+    photoRow.querySelectorAll("[data-view]").forEach((el) =>
+      el.addEventListener("click", () => openPhotoViewer(photos, Number(el.dataset.view)))
+    );
+    photoRow.querySelectorAll("[data-remove]").forEach((el) =>
+      el.addEventListener("click", () => {
+        photos.splice(Number(el.dataset.remove), 1);
+        renderPhotos();
+      })
+    );
+    photoRow.querySelector('[data-action="add-photo"]')?.addEventListener("click", () => photoInput.click());
+  }
+
+  photoInput.addEventListener("change", async () => {
+    const files = [...photoInput.files].slice(0, PHOTO_MAX_COUNT - photos.length);
+    photoInput.value = ""; // 清掉，下次選同一張也會觸發 change
+    if (!files.length) return;
+
+    busy = true;
+    renderPhotos();
+    let message = "";
+    for (const file of files) {
+      try {
+        const dataUrl = await compressImage(file);
+        if (projectedChars(dataUrl.length) > STORAGE_BUDGET_CHARS) {
+          message = "本機空間不足，無法再加入照片。可以先移除其他項目的照片";
+          break;
+        }
+        photos.push(dataUrl);
+      } catch {
+        message = "有照片無法讀取，請換一張試試";
+      }
+    }
+    busy = false;
+    renderPhotos(message);
+  });
+
+  renderPhotos();
+
   backdrop.querySelector('[data-action="save"]').addEventListener("click", () => {
+    if (busy) return;
     const input = {
       text: backdrop.querySelector("#ci-text").value.trim(),
       placeId: showPlace && place ? place.id : null,
       notes: backdrop.querySelector("#ci-notes").value.trim(),
+      photos,
     };
 
     const result = isEdit

@@ -11,6 +11,9 @@ export class BaseRepository {
     this.collectionKey = collectionKey;
     this.idPrefix = idPrefix;
     this.adapter = adapter;
+    // 最後一次寫入是否成功。localStorage 滿了的時候寫入會失敗，
+    // 需要提示使用者的地方（例如存照片）可以在 create/update 之後檢查這個值。
+    this.lastWriteOk = true;
   }
 
   getAll() {
@@ -31,7 +34,7 @@ export class BaseRepository {
       ...data,
     };
     items.push(record);
-    this.adapter.setCollection(this.collectionKey, items);
+    this.lastWriteOk = this.adapter.setCollection(this.collectionKey, items);
     return record;
   }
 
@@ -44,14 +47,14 @@ export class BaseRepository {
       ...patch,
       updatedAt: new Date().toISOString(),
     };
-    this.adapter.setCollection(this.collectionKey, items);
+    this.lastWriteOk = this.adapter.setCollection(this.collectionKey, items);
     return items[index];
   }
 
   delete(id) {
     const items = this.getAll();
     const next = items.filter((item) => item.id !== id);
-    this.adapter.setCollection(this.collectionKey, next);
+    this.lastWriteOk = this.adapter.setCollection(this.collectionKey, next);
     return next.length < items.length;
   }
 }

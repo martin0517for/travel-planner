@@ -8,6 +8,7 @@
  * isDone    boolean  是否已勾選完成
  * placeId   string | null  關聯地點（僅記事本／必買清單使用，行李清單不需要）
  * notes     string         備註（若內含網址會自動轉成可點擊連結）
+ * photos    string[]       照片，每張是壓縮後的 JPEG data URL（見 core/photos.js），最多 6 張
  */
 export function createChecklistItemDraft(tripId, listType) {
   return {
@@ -17,6 +18,7 @@ export function createChecklistItemDraft(tripId, listType) {
     isDone: false,
     placeId: null,
     notes: "",
+    photos: [],
   };
 }
 

@@ -13,6 +13,7 @@ import { CHECKLIST_TYPES, listHasPlaceField } from "../../data/models/ChecklistI
 import { openChecklistItemForm } from "./checklistItemFormView.js";
 import { openChecklistItemDetailView } from "./checklistItemDetailView.js";
 import { linkifyHtml } from "../../core/linkify.js";
+import { svgIcon } from "../../core/icons.js";
 
 export function renderTripListsView(container, params) {
   const trip = tripService.getTrip(params.id);
@@ -142,6 +143,10 @@ function paint(wrapper, trip, activeType) {
 function checklistItemHtml(item, showCheckbox, showPlace) {
   const placeLine = showPlace && item.place ? `<div class="checklist-item__meta">📍 ${escapeHtml(item.place.name)}</div>` : "";
   const notesLine = item.notes ? `<div class="checklist-item__meta">${linkifyHtml(item.notes)}</div>` : "";
+  const photoCount = (item.photos || []).length;
+  const photoLine = photoCount
+    ? `<div class="checklist-item__meta checklist-item__photos">${svgIcon("photo")}${photoCount} 張照片</div>`
+    : "";
 
   return `
     <div class="checklist-item ${item.isDone ? "is-done" : ""}">
@@ -154,6 +159,7 @@ function checklistItemHtml(item, showCheckbox, showPlace) {
         <span class="checklist-item__text">${escapeHtml(item.text)}</span>
         ${placeLine}
         ${notesLine}
+        ${photoLine}
       </div>
       <div class="checklist-item__actions">
         <button type="button" class="trip-card__icon-btn" data-action="delete-checklist-item" data-id="${item.id}" aria-label="刪除">🗑</button>
