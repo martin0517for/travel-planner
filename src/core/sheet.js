@@ -62,19 +62,50 @@ export function openSheet({ title, body, onMount }) {
     fitToViewport();
   }
 
-  // ---- 點了輸入框後，等鍵盤升起再把它捲到面板中間 ----
-  function onFocusIn(e) {
-    const el = e.target;
-    if (!el.matches("input, textarea, select")) return;
-    setTimeout(() => {
-      if (document.activeElement === el) el.scrollIntoView({ block: "center", behavior: "smooth" });
-    }, 350);
+  // ---- 防止 iPhone 點輸入框時「整個畫面跳一下」（2026-10-13 實機回報）----
+  // 原因：iPhone 跳出鍵盤時，會先把整個畫面往上推（平移可視範圍）讓輸入框露出來，
+  //      上面的程式再把面板對齊回去，兩個動作有時間差，看起來就是跳一下。
+  // 做法（業界常用的 iOS 技巧）：手指放開的那一刻，先把輸入框「暫時移到畫面最上方」再 focus，
+  //      iPhone 以為輸入框已經看得到，就不會推畫面；下一個畫格再移回原位。
+  //      鍵盤升起後，由我們自己在面板內「捲動」讓輸入框露出來（不動整個畫面）。
+  const TEXT_INPUT = 'input:not([type="radio"]):not([type="checkbox"]):not([type="button"]), textarea';
+  // 手指是在「滑動」而不是「點」的話，不要攔截（不然滑過輸入框也會跳出鍵盤）
+  let touchStart = null;
+  panel.addEventListener("touchstart", (e) => {
+    const t = e.touches[0];
+    touchStart = { x: t.clientX, y: t.clientY };
+  }, { passive: true });
+  function onTouchEnd(e) {
+    const t = e.changedTouches[0];
+    if (!touchStart || Math.abs(t.clientX - touchStart.x) > 10 || Math.abs(t.clientY - touchStart.y) > 10) return;
+    const el = e.target.closest ? e.target.closest(TEXT_INPUT) : null;
+    if (!el || !panel.contains(el) || document.activeElement === el || el.disabled || el.readOnly) return;
+    e.preventDefault();
+    el.style.transform = "translateY(-2000px)";
+    el.focus({ preventScroll: true });
+    requestAnimationFrame(() => {
+      el.style.transform = "";
+    });
   }
-  panel.addEventListener("focusin", onFocusIn);
+  panel.addEventListener("touchend", onTouchEnd, { passive: false });
+
+  // 讓目前輸入的欄位在面板裡看得到：只捲面板本身、瞬間完成、需要時才捲
+  function revealFocused() {
+    const el = document.activeElement;
+    if (!el || !panel.contains(el) || !el.matches(TEXT_INPUT + ", select")) return;
+    const box = panel.getBoundingClientRect();
+    const r = el.getBoundingClientRect();
+    const margin = 24;
+    if (r.bottom > box.bottom - margin) panel.scrollTop += r.bottom - box.bottom + margin;
+    else if (r.top < box.top + margin) panel.scrollTop -= box.top + margin - r.top;
+  }
+  panel.addEventListener("focusin", () => setTimeout(revealFocused, 0));
+  if (vv) vv.addEventListener("resize", revealFocused);
 
   function close() {
     if (vv) {
       vv.removeEventListener("resize", fitToViewport);
+      vv.removeEventListener("resize", revealFocused);
       vv.removeEventListener("scroll", fitToViewport);
     }
     document.removeEventListener("keydown", onKey);

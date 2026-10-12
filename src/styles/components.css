@@ -149,6 +149,8 @@ body.is-locked {
   align-items: flex-end;
   justify-content: center;
   animation: fade-in 0.15s ease-out;
+  /* 鍵盤升起／收起時，面板高度平順地跟著變，不要一下子跳 */
+  transition: height 0.25s ease-out;
 }
 .sheet {
   width: 100%;

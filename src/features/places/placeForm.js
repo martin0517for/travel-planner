@@ -8,7 +8,7 @@
  *
  * 「Google 地圖連結」：從 Google 地圖「分享」複製的連結，按「導航」時直接打開它。
  * 「地圖標示位置（座標）」：只用在 App 內的地圖標示，有兩種設定方式：
- *   1. 「用名稱搜尋」：用 OpenStreetMap 搜尋，從結果中點選
+ *   1. 搜尋框（預設等於名稱，可另外修改）：用 OpenStreetMap 搜尋，從結果中點選
  *   2. 貼上座標（或含座標的完整地圖連結），自動解析
  */
 import { html, render } from "../../core/html.js";
@@ -72,7 +72,12 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
           <legend class="field__legend">地圖標示位置（座標）</legend>
           <div class="location__status" id="pl-loc-status"></div>
 
-          <button type="button" class="btn btn--ghost btn--block" data-action="search">${icon("search")}用名稱搜尋位置</button>
+          <div class="location__query">
+            <input id="pl-query" type="search" enterkeyhint="search" autocomplete="off" autocorrect="off"
+                   maxlength="120" aria-label="搜尋位置用的文字" placeholder="輸入要搜尋的地點" value="${v.name}" />
+            <button type="button" class="btn btn--small" data-action="search">${icon("search")}搜尋</button>
+          </div>
+          <p class="field__hint field__hint--tight">預設跟名稱一樣，可以改成日文或英文名稱再搜尋，不會影響上面的名稱。</p>
           <div class="location__results" id="pl-results" aria-live="polite"></div>
 
           <div class="location__paste">
@@ -123,6 +128,14 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
       const pasteMsg = panel.querySelector("#pl-paste-msg");
       const searchBtn = panel.querySelector('[data-action="search"]');
       const mapUrlInput = form.elements.placeMapUrl;
+      const queryInput = panel.querySelector("#pl-query");
+
+      // 搜尋框預設跟名稱同步；使用者自己改過搜尋框之後，就不再跟著名稱變
+      let queryEdited = false;
+      queryInput.addEventListener("input", () => { queryEdited = true; });
+      form.elements.placeTitle.addEventListener("input", () => {
+        if (!queryEdited) queryInput.value = form.elements.placeTitle.value;
+      });
 
       function paintStatus() {
         render(
@@ -146,7 +159,7 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
 
       // 1. 用名稱搜尋
       searchBtn.addEventListener("click", async () => {
-        const query = [form.elements.placeTitle.value, form.elements.area.value].filter((s) => s.trim()).join(" ");
+        const query = queryInput.value.trim() || form.elements.placeTitle.value.trim();
         searchBtn.disabled = true;
         render(resultsBox, html`<p class="muted">搜尋中…</p>`);
         try {
@@ -166,7 +179,7 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
                   )}
                   <p class="field__hint">搜尋資料來源：© OpenStreetMap 貢獻者</p>
                 `
-              : html`<p class="muted">找不到結果。可以換個名稱（例如加上英文或日文），或改用貼上地圖連結。</p>`
+              : html`<p class="muted">找不到結果。可以把搜尋框改成日文或英文名稱再試，或改用貼上座標。</p>`
           );
           resultsBox.querySelectorAll("[data-index]").forEach((b) =>
             b.addEventListener("click", () => {
@@ -184,6 +197,14 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
         }
       });
 
+      // 在搜尋框按鍵盤的「搜尋」鍵 → 執行搜尋（不要送出整個表單）
+      queryInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          searchBtn.click();
+        }
+      });
+
       // 2. 貼上座標（也接受含座標的完整地圖連結；是地圖連結且上方連結欄還空著，就順便填進去）
       function applyPaste() {
         const text = pasteInput.value.trim();
@@ -195,7 +216,7 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
           coords = found;
           pasteMsg.textContent = "已取得座標。";
         } else if (url) {
-          pasteMsg.textContent = "這個連結裡沒有座標（短網址無法解析），已填入上方的 Google 地圖連結。要在 App 地圖上標示，請改用「用名稱搜尋位置」或貼上座標。";
+          pasteMsg.textContent = "這個連結裡沒有座標（短網址無法解析），已填入上方的 Google 地圖連結。要在 App 地圖上標示，請用上方的搜尋框搜尋，或貼上座標。";
         } else {
           pasteMsg.textContent = "看不懂這段內容。請貼上「35.71, 139.79」格式的座標。";
         }
