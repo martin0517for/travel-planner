@@ -35,7 +35,7 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
       <form class="form" novalidate>
         <div class="field">
           <label for="pl-title">名稱 <span class="field__required">必填</span></label>
-          <input id="pl-title" name="placeTitle" type="search" enterkeyhint="done" maxlength="${LIMITS.name}" autocomplete="off" autocorrect="off"
+          <input id="pl-title" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="placeTitle" type="search" enterkeyhint="done" maxlength="${LIMITS.name}"
                  placeholder="例如：淺草寺" value="${v.name}" />
         </div>
 
@@ -55,7 +55,7 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
 
         <div class="field">
           <label for="pl-area">地區</label>
-          <input id="pl-area" name="area" type="search" enterkeyhint="done" maxlength="${LIMITS.area}" autocomplete="off"
+          <input id="pl-area" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="area" type="search" enterkeyhint="done" maxlength="${LIMITS.area}"
                  placeholder="例如：東京" value="${v.area}" />
           ${areas.length
             ? html`<div class="quick-picks">${areas.slice(0, 6).map((a) => html`<button type="button" class="tag tag--btn" data-area="${a}">${a}</button>`)}</div>`
@@ -64,8 +64,8 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
 
         <div class="field">
           <label for="pl-mapurl">Google 地圖連結</label>
-          <input id="pl-mapurl" name="placeMapUrl" type="search" enterkeyhint="done" autocomplete="off"
-                 autocorrect="off" autocapitalize="off" placeholder="https://maps.app.goo.gl/…" value="${v.mapsUrl}" />
+          <input id="pl-mapurl" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="placeMapUrl" type="search" enterkeyhint="done"
+                 placeholder="https://maps.app.goo.gl/…" value="${v.mapsUrl}" />
           <p class="field__hint field__hint--tight">在 Google 地圖按「分享」→「複製連結」貼上。按「導航」會直接打開這個連結；沒填就用名稱搜尋。</p>
         </div>
 
@@ -74,7 +74,7 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
           <div class="location__status" id="pl-loc-status"></div>
 
           <div class="location__query">
-            <input id="pl-query" type="search" enterkeyhint="search" autocomplete="off" autocorrect="off"
+            <input id="pl-query" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" type="search" enterkeyhint="search"
                    maxlength="120" aria-label="搜尋位置用的文字" placeholder="輸入要搜尋的地點" value="${v.name}" />
             <button type="button" class="btn btn--small" data-action="search">${icon("search")}搜尋</button>
           </div>
@@ -82,7 +82,7 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
           <div class="location__results" id="pl-results" aria-live="polite"></div>
 
           <div class="location__paste">
-            <input id="pl-paste" type="search" enterkeyhint="done" autocomplete="off"
+            <input id="pl-paste" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" type="search" enterkeyhint="done"
                    placeholder="或貼上座標，例如 35.71, 139.79" />
             <button type="button" class="btn btn--small" data-action="parse">套用</button>
           </div>
@@ -91,24 +91,24 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
 
         <div class="field">
           <label for="pl-address">地址</label>
-          <input id="pl-address" name="placeAddr" type="search" enterkeyhint="done" maxlength="${LIMITS.address}" autocomplete="off" value="${v.address}" />
+          <input id="pl-address" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="placeAddr" type="search" enterkeyhint="done" maxlength="${LIMITS.address}" value="${v.address}" />
         </div>
 
         <div class="field">
           <label for="pl-tags">標籤</label>
-          <input id="pl-tags" name="tags" type="search" enterkeyhint="done" autocomplete="off" placeholder="用逗號分隔，例如：必訪, 雨天備案"
+          <input id="pl-tags" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="tags" type="search" enterkeyhint="done" placeholder="用逗號分隔，例如：必訪, 雨天備案"
                  value="${v.tags.join(", ")}" />
         </div>
 
         <div class="field">
           <label for="pl-website">官網</label>
-          <input id="pl-website" name="website" type="search" enterkeyhint="done" autocomplete="off" placeholder="https://"
+          <input id="pl-website" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="website" type="search" enterkeyhint="done" placeholder="https://"
                  value="${v.website}" />
         </div>
 
         <div class="field">
           <label for="pl-notes">備註</label>
-          <textarea id="pl-notes" name="notes" rows="3" maxlength="${LIMITS.notes}"
+          <textarea id="pl-notes" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="notes" rows="3" maxlength="${LIMITS.notes}"
                     placeholder="營業時間、推薦菜色…網址會自動變成連結">${v.notes}</textarea>
         </div>
 
