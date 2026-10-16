@@ -26,3 +26,30 @@ export function linkify(text) {
   parts.push(s.slice(last));
   return html`${parts}`;
 }
+
+/**
+ * linkSource(url) — 依網址顯示來源名稱，給「參考連結」按鈕用。
+ *   instagram.com → Instagram、threads.net / threads.com → Threads、
+ *   facebook.com / fb.com → Facebook、youtube.com / youtu.be → YouTube、
+ *   其他網站顯示網域（去掉 www.），例如 tabelog.com。
+ * 只讀網址的主機名稱，不會連網；回傳的是純文字，畫面上一樣會跳脫。
+ */
+const KNOWN_SOURCES = [
+  [["instagram.com"], "Instagram"],
+  [["threads.net", "threads.com"], "Threads"],
+  [["facebook.com", "fb.com", "fb.me"], "Facebook"],
+  [["youtube.com", "youtu.be"], "YouTube"],
+];
+
+export function linkSource(url) {
+  let host;
+  try {
+    host = new URL(url).hostname.toLowerCase();
+  } catch {
+    return "參考連結";
+  }
+  for (const [domains, label] of KNOWN_SOURCES) {
+    if (domains.some((d) => host === d || host.endsWith("." + d))) return label;
+  }
+  return host.replace(/^www\./, "") || "參考連結";
+}

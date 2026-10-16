@@ -101,9 +101,10 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
         </div>
 
         <div class="field">
-          <label for="pl-website">官網</label>
+          <label for="pl-website">參考連結</label>
           <input id="pl-website" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="website" type="search" enterkeyhint="done" placeholder="https://"
                  value="${v.website}" />
+          <p class="field__hint">在哪裡看到推薦？貼上 IG、Threads 或部落格網址</p>
         </div>
 
         <div class="field">

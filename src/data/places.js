@@ -11,7 +11,8 @@
  *   address   string   最多 160 字
  *   lat, lng  number | null  座標（只用在 App 內的地圖標示；導航一律用名稱搜尋）
  *   mapsUrl   string   Google 地圖連結（只接受 http/https），按「導航」時直接打開
- *   website   string   官網（只接受 http/https）
+ *   website   string   參考連結：在哪裡看到推薦（IG、Threads、部落格…），只接受 http/https
+ *                      （2026-10-16 從「官網」改名，欄位名稱保留 website，舊資料不用轉換）
  *   notes     string   備註，最多 1000 字
  *   createdAt / updatedAt
  *
@@ -98,7 +99,7 @@ export function validatePlaceInput(input) {
   const errors = [];
   if (!cleanText(input.name, LIMITS.name)) errors.push("請輸入地點名稱");
   if (input.mapsUrl && !safeUrl(String(input.mapsUrl).trim())) errors.push("Google 地圖連結需以 http:// 或 https:// 開頭");
-  if (input.website && !safeUrl(String(input.website).trim())) errors.push("官網網址需以 http:// 或 https:// 開頭");
+  if (input.website && !safeUrl(String(input.website).trim())) errors.push("參考連結需以 http:// 或 https:// 開頭");
   if (typeof input.notes === "string" && input.notes.length > LIMITS.notes) errors.push(`備註最多 ${LIMITS.notes} 字`);
   return { errors, value: cleanPlace(input) };
 }

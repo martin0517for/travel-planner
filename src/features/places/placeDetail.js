@@ -1,12 +1,12 @@
 /**
  * placeDetail.js — 地點預覽（唯讀）。點列表上的地點會先開這個，
- * 在這裡可以直接「導航」或開官網。
+ * 在這裡可以直接「導航」或開參考連結（按鈕顯示來源，例如 Instagram、Threads）。
  * 底部是「刪除｜編輯」（關閉用右上角的 ×）。
  */
 import { html } from "../../core/html.js";
 import { icon } from "../../core/icons.js";
 import { openSheet } from "../../core/sheet.js";
-import { linkify } from "../../core/linkify.js";
+import { linkify, linkSource } from "../../core/linkify.js";
 import { navigationUrl, isValidLatLng } from "../../core/geo.js";
 import { safeUrl } from "../../core/html.js";
 import { categoryLabel, placeStore } from "../../data/places.js";
@@ -31,7 +31,7 @@ export function openPlaceDetail({ place, onChanged }) {
           ? html`<a class="btn btn--primary" href="${nav}" target="_blank" rel="noopener noreferrer">${icon("navigate")}導航</a>`
           : ""}
         ${website
-          ? html`<a class="btn btn--ghost" href="${website}" target="_blank" rel="noopener noreferrer">${icon("globe")}官網</a>`
+          ? html`<a class="btn btn--ghost" href="${website}" target="_blank" rel="noopener noreferrer">${icon("globe")}<span class="btn__label">${linkSource(website)}</span></a>`
           : ""}
       </div>
       <p class="field__hint nav-hint">${safeUrl(place.mapsUrl) ? "導航會打開保存的 Google 地圖連結" : "沒有保存 Google 地圖連結，導航會用「名稱＋地區」搜尋"}</p>
