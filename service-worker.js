@@ -6,7 +6,8 @@
  * 外部網址（之後的地圖圖磚、天氣、匯率）不攔截，交給瀏覽器照常處理。
  * 不需要維護檔案清單：App 開過一次，載入過的檔案就都進了快取。
  */
-const CACHE_NAME = "travel-planner-v2";
+const CACHE_PREFIX = "travel-planner";
+const CACHE_NAME = `${CACHE_PREFIX}-v2`;
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(["./", "./index.html", "./manifest.json"])));
@@ -14,11 +15,17 @@ self.addEventListener("install", (event) => {
 });
 
 self.addEventListener("activate", (event) => {
-  // 刪掉舊版（v1）留下的快取
+  // 刪掉這個 App 自己的舊版快取（例如 v1）。
+  // 只刪 "travel-planner" 開頭的：同網域（martin0517for.github.io）的其他 App
+  // 共用同一個快取空間，不能動到它們的快取（2026-10-18）。
   event.waitUntil(
     caches
       .keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))))
+      .then((keys) =>
+        Promise.all(
+          keys.filter((k) => k.startsWith(CACHE_PREFIX) && k !== CACHE_NAME).map((k) => caches.delete(k))
+        )
+      )
       .then(() => self.clients.claim())
   );
 });
