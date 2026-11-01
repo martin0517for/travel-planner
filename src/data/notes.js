@@ -6,6 +6,8 @@
  *   tripId     string   屬於哪一趟旅程（每趟各自一份；刪除旅程時連帶刪除）
  *   kind       string   類型：note 筆記（預設）／trip 行程／buy 想買／souvenir 紀念品／other 其他
  *                      （v0.10.1 加上行程、紀念品）
+ *   customKind string   自訂類型（v0.10.2）：只有 kind＝other 時才有，最多 10 字，例如「藥妝」；
+ *                      空白時顯示「其他」
  *   title      string   標題（必填），最多 60 字（欄位不叫 name，避免 iPhone 當成聯絡人表單）
  *   url        string   參考連結，一個，只接受 http/https；可空
  *   body       string   內容，最多 3000 字（網址在畫面上會變成連結）；可空
@@ -21,7 +23,7 @@ import { safeUrl } from "../core/html.js";
 const COLLECTION = "notes";
 const STORAGE_FAIL = "儲存失敗：手機本機空間不足，或瀏覽器不允許儲存（例如無痕模式）";
 
-export const LIMITS = { title: 60, url: 500, body: 3000 };
+export const LIMITS = { title: 60, url: 500, body: 3000, customKind: 10 };
 
 // 順序＝表單選項與篩選列的順序（v0.10.1 使用者決定）
 export const NOTE_KINDS = [
@@ -46,9 +48,16 @@ function cleanUrl(value) {
   return url && safeUrl(url) ? url : "";
 }
 
+/** 畫面上顯示的類型名稱：自訂類型優先，其他用內建名稱 */
+export function noteKindLabel(note) {
+  return (note.kind === "other" && note.customKind) || noteKind(note.kind).label;
+}
+
 function cleanNote(raw) {
+  const kind = KIND_VALUES.has(raw.kind) ? raw.kind : "note";
   return {
-    kind: KIND_VALUES.has(raw.kind) ? raw.kind : "note",
+    kind,
+    customKind: kind === "other" ? cleanText(raw.customKind, LIMITS.customKind) : "",
     title: cleanText(raw.title, LIMITS.title),
     url: cleanUrl(raw.url),
     body: typeof raw.body === "string" ? raw.body.slice(0, LIMITS.body) : "",
@@ -87,6 +96,7 @@ export function validateNoteInput(input) {
   if (url.length > LIMITS.url) errors.push(`參考連結最多 ${LIMITS.url} 字`);
   else if (url && !safeUrl(url)) errors.push("參考連結需以 http:// 或 https:// 開頭");
   if (typeof input.body === "string" && input.body.length > LIMITS.body) errors.push(`內容最多 ${LIMITS.body} 字`);
+  if (cleanText(input.customKind, LIMITS.customKind + 1).length > LIMITS.customKind) errors.push(`自訂類型最多 ${LIMITS.customKind} 字`);
   return { errors, value: cleanNote(input) };
 }
 
@@ -101,6 +111,17 @@ export const noteStore = {
   get(id) {
     if (!isValidId(id)) return null;
     return loadAll().find((n) => n.id === id) || null;
+  },
+
+  /** 用過的自訂類型（所有旅程，最近用的在前面，不重複；表單的快速選項） */
+  usedCustomKinds(max = 12) {
+    const seen = new Set();
+    return loadAll()
+      .filter((n) => n.customKind)
+      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+      .map((n) => n.customKind)
+      .filter((k) => !seen.has(k) && seen.add(k))
+      .slice(0, max);
   },
 
   create(tripId, input) {

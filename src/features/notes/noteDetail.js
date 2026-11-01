@@ -7,7 +7,7 @@ import { html, safeUrl } from "../../core/html.js";
 import { icon } from "../../core/icons.js";
 import { openSheet } from "../../core/sheet.js";
 import { linkify, linkSource } from "../../core/linkify.js";
-import { noteStore, noteKind } from "../../data/notes.js";
+import { noteStore, noteKind, noteKindLabel } from "../../data/notes.js";
 import { openNoteForm } from "./noteForm.js";
 
 /** 完成時的說法：筆記＝看過、行程＝去過、想買／紀念品＝買了、其他＝完成（見 data/notes.js） */
@@ -23,7 +23,7 @@ export function openNoteDetail({ note, onChanged }) {
     title: note.title,
     body: html`
       <div class="detail-badges">
-        <span class="badge ${k.cat}">${icon(k.icon)}${k.label}</span>
+        <span class="badge ${k.cat}">${icon(k.icon)}${noteKindLabel(note)}</span>
         ${note.done ? html`<span class="badge tp-status is-visited">${icon("check")}${doneLabel(note.kind)}</span>` : ""}
       </div>
 

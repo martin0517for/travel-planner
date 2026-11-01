@@ -6,6 +6,7 @@
  *
  * 欄位（2026-11-01 使用者決定）：類型（筆記／行程／想買／紀念品／其他，預設筆記）、標題（必填 60 字）、
  * 參考連結（一個，只接受 http/https）、內容（3000 字，網址在預覽裡會變成連結）。
+ * v0.10.2：選「其他」時出現「自訂類型」（10 字，可不填），下方列出用過的自訂類型，點一下帶入。
  */
 import { html, raw, render } from "../../core/html.js";
 import { icon } from "../../core/icons.js";
@@ -17,7 +18,8 @@ const TEXT_ATTRS = 'autocomplete="off" autocorrect="off" autocapitalize="off" sp
 
 export function openNoteForm({ tripId, note = null, onSaved } = {}) {
   const isEdit = Boolean(note);
-  const v = note || { kind: "note", title: "", url: "", body: "" };
+  const v = note || { kind: "note", customKind: "", title: "", url: "", body: "" };
+  const used = noteStore.usedCustomKinds();
 
   openSheet({
     title: isEdit ? "編輯筆記" : "新增筆記",
@@ -35,6 +37,15 @@ export function openNoteForm({ tripId, note = null, onSaved } = {}) {
               `
             )}
           </div>
+        </div>
+
+        <div class="field" data-custom ${v.kind === "other" ? "" : html`hidden`}>
+          <label for="nt-custom">自訂類型</label>
+          <input id="nt-custom" ${raw(TEXT_ATTRS)} name="noteCustom" maxlength="${LIMITS.customKind}"
+                 placeholder="例如：藥妝、美食（可不填）" value="${v.customKind || ""}" />
+          ${used.length
+            ? html`<div class="quick-picks">${used.map((k) => html`<button type="button" class="tag tag--btn" data-pick-kind="${k}">${k}</button>`)}</div>`
+            : ""}
         </div>
 
         <div class="field">
@@ -75,11 +86,21 @@ export function openNoteForm({ tripId, note = null, onSaved } = {}) {
       body.addEventListener("input", paintCount);
       paintCount();
 
+      // 選「其他」才顯示自訂類型
+      const customBox = panel.querySelector("[data-custom]");
+      form.querySelectorAll('input[name="kind"]').forEach((r) =>
+        r.addEventListener("change", () => (customBox.hidden = form.querySelector('input[name="kind"]:checked').value !== "other"))
+      );
+      panel.querySelectorAll("[data-pick-kind]").forEach((btn) =>
+        btn.addEventListener("click", () => (form.elements.noteCustom.value = btn.dataset.pickKind))
+      );
+
       form.addEventListener("submit", (e) => {
         e.preventDefault();
         const el = form.elements;
         const kindInput = form.querySelector('input[name="kind"]:checked');
-        const input = { kind: kindInput ? kindInput.value : "note", title: el.noteTitle.value, url: el.noteUrl.value, body: body.value };
+        const kind = kindInput ? kindInput.value : "note";
+        const input = { kind, customKind: kind === "other" ? el.noteCustom.value : "", title: el.noteTitle.value, url: el.noteUrl.value, body: body.value };
         const result = isEdit ? noteStore.update(note.id, input) : noteStore.create(tripId, input);
         if (!result.ok) {
           render(errorsBox, html`${result.errors.map((err) => html`<div>${err}</div>`)}`);

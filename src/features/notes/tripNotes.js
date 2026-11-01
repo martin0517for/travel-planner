@@ -4,7 +4,7 @@
  * 每趟旅程自己的筆記：想買的東西、參考文章等。
  * 版面（由上到下）：
  *   搜尋框（只搜這趟：標題、內容、網址）＋「＋」新增
- *   類型篩選列（全部＋筆記／行程／想買／紀念品／其他；只列這趟用到的，只有一種時不顯示）
+ *   類型篩選列（全部＋筆記／行程／想買／紀念品＋每個自訂類型各一顆＋其他；只列這趟用到的，只有一種時不顯示）
  *   「未完成」「完成」兩個區塊（各顯示數量；新的排上面）
  *     每列：勾選框（只有點框才會勾）、類型圖示、標題、連結來源（有連結時）
  *     完成＝打勾＋變淡，移到「完成」（不加刪除線）
@@ -13,7 +13,7 @@
 import { html, render, safeUrl } from "../../core/html.js";
 import { icon } from "../../core/icons.js";
 import { linkSource } from "../../core/linkify.js";
-import { noteStore, NOTE_KINDS, noteKind } from "../../data/notes.js";
+import { noteStore, NOTE_KINDS, noteKind, noteKindLabel } from "../../data/notes.js";
 import { openNoteForm } from "./noteForm.js";
 import { openNoteDetail, doneLabel } from "./noteDetail.js";
 
@@ -45,7 +45,7 @@ function paint(box, trip) {
     return;
   }
 
-  const kinds = NOTE_KINDS.filter((k) => notes.some((n) => n.kind === k.value));
+  const kinds = filterOptions(notes);
   if (state.kind && !kinds.some((k) => k.value === state.kind)) state.kind = "";
   const oldChips = box.querySelector(".chips[aria-label]");
   const chipScroll = oldChips ? oldChips.scrollLeft : 0;
@@ -104,7 +104,7 @@ function paintResults(box, notes, repaint) {
   const results = box.querySelector("#nt-results");
   const text = state.q.trim().toLowerCase();
   const shown = notes.filter(
-    (n) => (!state.kind || n.kind === state.kind) && (!text || [n.title, n.body, n.url].some((t) => t.toLowerCase().includes(text)))
+    (n) => (!state.kind || filterKey(n) === state.kind) && (!text || [n.title, n.body, n.url, n.customKind].some((t) => t.toLowerCase().includes(text)))
   );
   const groups = [
     { title: "未完成", list: shown.filter((n) => !n.done) },
@@ -150,7 +150,7 @@ function row(n) {
         <span class="tp-check__box">${n.done ? icon("check") : ""}</span>
       </button>
       <button type="button" class="tp-row__main" data-open="${n.id}">
-        <span class="place-row__icon ${k.cat}" title="${k.label}">${icon(k.icon)}</span>
+        <span class="place-row__icon ${k.cat}" title="${noteKindLabel(n)}">${icon(k.icon)}</span>
         <span class="place-row__body">
           <span class="place-row__name">${n.title}</span>
           ${url ? html`<span class="note-link">${icon("link")}<span>${linkSource(url)}</span></span>` : ""}
@@ -158,4 +158,20 @@ function row(n) {
       </button>
     </li>
   `;
+}
+
+/** 篩選用的鍵：內建類型用 kind；自訂類型用 "c:名稱"（每個自訂類型各自一顆） */
+function filterKey(n) {
+  return n.kind === "other" && n.customKind ? `c:${n.customKind}` : n.kind;
+}
+
+/** 篩選列的選項：內建類型（照順序，「其他」除外）→ 自訂類型 → 其他；只列這趟用到的 */
+function filterOptions(notes) {
+  const keys = new Set(notes.map(filterKey));
+  const builtIn = NOTE_KINDS.filter((k) => k.value !== "other" && keys.has(k.value));
+  const other = NOTE_KINDS.find((k) => k.value === "other");
+  const customs = [...keys]
+    .filter((key) => key.startsWith("c:"))
+    .map((key) => ({ ...other, value: key, label: key.slice(2) }));
+  return [...builtIn, ...customs, ...(keys.has("other") ? [other] : [])];
 }
