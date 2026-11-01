@@ -22,7 +22,7 @@ import { parseCoordinates, looksLikeMapUrl, searchPlaces, isValidLatLng } from "
 export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted } = {}) {
   const isEdit = Boolean(place);
   const v = place || {
-    name: "", category: defaults.category || "attraction", area: defaults.area || "",
+    name: defaults.name || "", category: defaults.category || "attraction", area: defaults.area || "",
     tags: [], address: "", lat: null, lng: null, mapsUrl: "", website: "", notes: "", geoQuery: "",
   };
   // 位置的暫存狀態（按「儲存」才會寫入）

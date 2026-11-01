@@ -5,13 +5,15 @@
  *   flight 為 null → 新增；有值 → 編輯
  *
  * 欄位全部可以空白，但至少要填一項。時間填機票上的當地時間。
- * 出發／抵達機場：第 2 步（選地點畫面）做好後才能選，目前只顯示「尚未選擇」，
- * 編輯時原本存的機場 id 會原樣保留。
+ * 出發／抵達機場：按下去開「選地點畫面」（預先篩選機場分類，可以切到全部），
+ * 選好後顯示機場名稱與地區，右邊有「清除」。
  */
 import { html, raw, render } from "../../core/html.js";
 import { openSheet } from "../../core/sheet.js";
 import { flightStore, FLIGHT_DIRECTIONS, LIMITS } from "../../data/flights.js";
 import { placeStore } from "../../data/places.js";
+import { icon } from "../../core/icons.js";
+import { openPlacePicker } from "../places/placePicker.js";
 
 // 所有文字欄位用同一組設定（同一種鍵盤，避免切換欄位時鍵盤高度不同而跳動）
 const TEXT_ATTRS = 'autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" type="search" enterkeyhint="done"';
@@ -22,9 +24,8 @@ export function openFlightForm({ tripId, flight = null, onSaved } = {}) {
     direction: "other", airline: "", flightNo: "", departurePlaceId: "", departureTime: "",
     arrivalPlaceId: "", arrivalTime: "", bookingRef: "", seat: "", notes: "",
   };
-  // 機場目前不能在表單裡改，先記住原本的值
-  const departurePlaceId = v.departurePlaceId;
-  const arrivalPlaceId = v.arrivalPlaceId;
+  // 目前選的機場（按「儲存」才會寫入）
+  const airports = { departure: v.departurePlaceId, arrival: v.arrivalPlaceId };
 
   openSheet({
     title: isEdit ? "編輯航班" : "新增航班",
@@ -57,13 +58,13 @@ export function openFlightForm({ tripId, flight = null, onSaved } = {}) {
           </div>
         </div>
 
-        ${airportField("出發機場", departurePlaceId)}
+        <div class="field" data-airport="departure"></div>
         <div class="field">
           <label for="fl-dep-time">出發時間（當地）</label>
           <input id="fl-dep-time" name="departureTime" type="datetime-local" value="${v.departureTime}" />
         </div>
 
-        ${airportField("抵達機場", arrivalPlaceId)}
+        <div class="field" data-airport="arrival"></div>
         <div class="field">
           <label for="fl-arr-time">抵達時間（當地）</label>
           <input id="fl-arr-time" name="arrivalTime" type="datetime-local" value="${v.arrivalTime}" />
@@ -102,6 +103,32 @@ export function openFlightForm({ tripId, flight = null, onSaved } = {}) {
       const form = panel.querySelector("form");
       const errorsBox = panel.querySelector(".form__errors");
 
+      // 畫出機場欄位，並綁定「選擇」「清除」
+      const AIRPORT_LABELS = { departure: "出發機場", arrival: "抵達機場" };
+      function paintAirport(key) {
+        const box = panel.querySelector(`[data-airport="${key}"]`);
+        render(box, airportField(AIRPORT_LABELS[key], airports[key]));
+        box.querySelector("[data-pick]").addEventListener("click", () =>
+          openPlacePicker({
+            title: `選擇${AIRPORT_LABELS[key]}`,
+            category: "airport",
+            selectedId: airports[key],
+            onPick: (place) => {
+              airports[key] = place.id;
+              paintAirport(key);
+            },
+          })
+        );
+        const clear = box.querySelector("[data-clear]");
+        if (clear)
+          clear.addEventListener("click", () => {
+            airports[key] = "";
+            paintAirport(key);
+          });
+      }
+      paintAirport("departure");
+      paintAirport("arrival");
+
       form.addEventListener("submit", (e) => {
         e.preventDefault();
         const el = form.elements;
@@ -109,9 +136,9 @@ export function openFlightForm({ tripId, flight = null, onSaved } = {}) {
           direction: el.direction.value,
           airline: el.airline.value,
           flightNo: el.flightCode.value,
-          departurePlaceId,
+          departurePlaceId: airports.departure,
           departureTime: el.departureTime.value,
-          arrivalPlaceId,
+          arrivalPlaceId: airports.arrival,
           arrivalTime: el.arrivalTime.value,
           bookingRef: el.bookingRef.value,
           seat: el.seat.value,
@@ -132,16 +159,22 @@ export function openFlightForm({ tripId, flight = null, onSaved } = {}) {
   });
 }
 
-/** 機場欄位（暫時版）：顯示目前存的機場名稱，或「尚未選擇」 */
+/** 機場欄位：沒選時顯示「選擇機場」；選了顯示名稱＋地區，右邊有「清除」 */
 function airportField(label, placeId) {
   const place = placeId ? placeStore.get(placeId) : null;
+  const missing = placeId && !place; // 存了 id，但地點已經不存在
   return html`
-    <div class="field">
-      <div class="field__legend">${label}</div>
-      <button type="button" class="picker-btn" disabled>
-        <span class="picker-btn__text ${place ? "" : "is-empty"}">${place ? place.name : "尚未選擇"}</span>
+    <div class="field__legend">${label}</div>
+    <div class="picker-field">
+      <button type="button" class="picker-btn ${place ? "has-value" : ""}" data-pick>
+        ${icon("airport")}
+        <span class="picker-btn__text">
+          ${place
+            ? html`<span class="picker-btn__name">${place.name}</span>${place.area ? html`<span class="picker-btn__sub">${place.area}</span>` : ""}`
+            : html`<span class="is-empty">${missing ? "（地點已刪除）請重新選擇" : "選擇機場"}</span>`}
+        </span>
       </button>
-      <p class="field__hint field__hint--tight">下一步做好「選地點畫面」後，就能從地點資料庫選機場。</p>
+      ${placeId ? html`<button type="button" class="btn btn--small" data-clear>清除</button>` : ""}
     </div>
   `;
 }

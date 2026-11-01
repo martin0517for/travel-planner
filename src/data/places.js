@@ -23,6 +23,7 @@
 import { readCollection, writeCollection, newId, isValidId } from "../core/storage.js";
 import { safeUrl } from "../core/html.js";
 import { isValidLatLng } from "../core/geo.js";
+import { placeUsages } from "./placeUsage.js";
 
 const COLLECTION = "places";
 const STORAGE_FAIL = "儲存失敗：手機本機空間不足，或瀏覽器不允許儲存（例如無痕模式）";
@@ -154,7 +155,14 @@ export const placeStore = {
   },
 
   remove(id) {
-    // 之後航班、住宿、行程、清單引用地點時，要在這裡先檢查「有沒有被使用」，有的話提醒使用者
+    // 正在被航班（之後還有住宿、行程、清單）使用的地點不能刪除，並告訴使用者用在哪裡
+    const usages = placeUsages(id);
+    if (usages.length) {
+      return {
+        ok: false,
+        errors: ["這個地點還在使用中，要先從下列地方移除才能刪除：", ...usages.map((u) => `・${u}`)],
+      };
+    }
     const all = loadAll();
     const next = all.filter((p) => p.id !== id);
     if (next.length === all.length) return { ok: false, errors: ["找不到這個地點"] };
