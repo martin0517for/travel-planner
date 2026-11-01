@@ -23,10 +23,12 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
   const isEdit = Boolean(place);
   const v = place || {
     name: "", category: defaults.category || "attraction", area: defaults.area || "",
-    tags: [], address: "", lat: null, lng: null, mapsUrl: "", website: "", notes: "",
+    tags: [], address: "", lat: null, lng: null, mapsUrl: "", website: "", notes: "", geoQuery: "",
   };
   // 位置的暫存狀態（按「儲存」才會寫入）
   let coords = isValidLatLng(v.lat, v.lng) ? { lat: v.lat, lng: v.lng } : null;
+  // 上次成功搜尋到位置時用的文字（儲存時一起存，下次編輯時搜尋框顯示它）
+  let geoQuery = v.geoQuery || "";
   const areas = placeStore.areas();
 
   openSheet({
@@ -75,10 +77,10 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
 
           <div class="location__query">
             <input id="pl-query" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" type="search" enterkeyhint="search"
-                   maxlength="120" aria-label="搜尋位置用的文字" placeholder="輸入要搜尋的地點" value="${v.name}" />
+                   maxlength="120" aria-label="搜尋位置用的文字" placeholder="輸入要搜尋的地點" value="${geoQuery || v.name}" />
             <button type="button" class="btn btn--small" data-action="search">${icon("search")}搜尋</button>
           </div>
-          <p class="field__hint field__hint--tight">預設跟名稱一樣，可以改成日文或英文名稱再搜尋，不會影響上面的名稱。</p>
+          <p class="field__hint field__hint--tight">預設跟名稱一樣，可以改成日文或英文名稱再搜尋，不會影響上面的名稱。選定結果後，這裡的文字會一起儲存。</p>
           <div class="location__results" id="pl-results" aria-live="polite"></div>
 
           <div class="location__paste">
@@ -133,7 +135,8 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
       const queryInput = panel.querySelector("#pl-query");
 
       // 搜尋框預設跟名稱同步；使用者自己改過搜尋框之後，就不再跟著名稱變
-      let queryEdited = false;
+      // 有存過搜尋文字的地點，一開始就視為「改過」，不會被名稱蓋掉
+      let queryEdited = Boolean(geoQuery);
       queryInput.addEventListener("input", () => { queryEdited = true; });
       form.elements.placeTitle.addEventListener("input", () => {
         if (!queryEdited) queryInput.value = form.elements.placeTitle.value;
@@ -150,7 +153,7 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
             : html`<span class="muted">尚未定位（不會顯示在 App 的地圖上）</span>`
         );
         const clear = statusBox.querySelector('[data-action="clear-coords"]');
-        if (clear) clear.addEventListener("click", () => { coords = null; paintStatus(); });
+        if (clear) clear.addEventListener("click", () => { coords = null; geoQuery = ""; paintStatus(); });
       }
       paintStatus();
 
@@ -187,6 +190,7 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
             b.addEventListener("click", () => {
               const r = results[Number(b.dataset.index)];
               coords = { lat: r.lat, lng: r.lng };
+              geoQuery = query; // 記住這次搜尋到位置用的文字
               if (!form.elements.placeAddr.value.trim()) form.elements.placeAddr.value = r.address.slice(0, LIMITS.address);
               render(resultsBox, html``);
               paintStatus();
@@ -256,6 +260,7 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
           mapsUrl: mapUrlInput.value,
           website: form.elements.website.value,
           notes: form.elements.notes.value,
+          geoQuery,
         };
         const result = isEdit ? placeStore.update(place.id, input) : placeStore.create(input);
         if (!result.ok) return showErrors(result.errors);

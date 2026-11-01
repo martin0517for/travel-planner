@@ -127,7 +127,7 @@ function paintResults(container, places) {
     (p) =>
       (!filters.area || p.area === filters.area) &&
       (!filters.category || p.category === filters.category) &&
-      (!q || [p.name, p.address, p.area, p.notes, ...p.tags].some((t) => t.toLowerCase().includes(q)))
+      (!q || [p.name, p.address, p.area, p.notes, p.geoQuery, ...p.tags].some((t) => t.toLowerCase().includes(q)))
   );
 
   render(

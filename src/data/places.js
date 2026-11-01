@@ -14,6 +14,8 @@
  *   website   string   參考連結：在哪裡看到推薦（IG、Threads、部落格…），只接受 http/https
  *                      （2026-10-16 從「官網」改名，欄位名稱保留 website，舊資料不用轉換）
  *   notes     string   備註，最多 1000 字
+ *   geoQuery  string   上次「搜尋位置」成功選定結果時，搜尋框裡的文字（例如日文店名），最多 120 字；
+ *                      下次編輯時搜尋框直接顯示它。只是輔助，不影響名稱與導航（2026-11-01）
  *   createdAt / updatedAt
  *
  * 所有操作回傳 { ok: true, place } 或 { ok: false, errors: [...] }。
@@ -25,7 +27,7 @@ import { isValidLatLng } from "../core/geo.js";
 const COLLECTION = "places";
 const STORAGE_FAIL = "儲存失敗：手機本機空間不足，或瀏覽器不允許儲存（例如無痕模式）";
 
-export const LIMITS = { name: 60, area: 30, tag: 20, tags: 10, address: 160, notes: 1000, url: 2000 };
+export const LIMITS = { name: 60, area: 30, tag: 20, tags: 10, address: 160, notes: 1000, url: 2000, geoQuery: 120 };
 
 /** 固定分類。順序就是畫面上的顯示順序。顏色寫在 places.css（.cat--xxx）。 */
 export const PLACE_CATEGORIES = [
@@ -75,6 +77,7 @@ function cleanPlace(raw) {
     mapsUrl: cleanUrl(raw.mapsUrl),
     website: cleanUrl(raw.website),
     notes: typeof raw.notes === "string" ? raw.notes.slice(0, LIMITS.notes) : "",
+    geoQuery: cleanText(raw.geoQuery, LIMITS.geoQuery),
   };
 }
 
