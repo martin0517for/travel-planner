@@ -181,3 +181,16 @@
 }
 .quick-add:active .adder-check { background: var(--color-pressed); }
 .quick-add:active .adder-check.is-on { background: var(--color-accent); }
+
+/* ---- 筆記（v0.9.0）：列表第 2 行的連結來源、預覽內容 ---- */
+.note-link {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  font-size: 0.82rem;
+  color: var(--color-link);
+}
+.note-link .icon { width: 13px; height: 13px; flex-shrink: 0; }
+.note-link span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.note-body { overflow-wrap: anywhere; }

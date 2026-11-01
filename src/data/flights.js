@@ -82,7 +82,7 @@ function hasContent(f) {
 }
 
 /** 從本機讀出的一筆 → 合法 Flight 或 null（壞資料略過） */
-function normalizeFlight(raw) {
+export function normalizeFlight(raw) {
   if (!raw || typeof raw !== "object" || !isValidId(raw.id) || !isValidId(raw.tripId)) return null;
   const flight = cleanFlight(raw);
   if (!hasContent(flight)) return null;

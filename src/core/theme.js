@@ -1,7 +1,7 @@
 /**
  * theme.js — 深色／淺色模式。
- * 目前固定「跟隨系統」：iPhone 切換深色模式時，App 會即時跟著換。
- * 之後做「設定」頁時，會加上手動選擇淺色／深色的選項。
+ * preference：system 跟隨系統（iPhone 切換深色模式時即時跟著換）／light 淺色／dark 深色。
+ * 選擇存在 data/settings.js，設定頁可以改（v0.10.0）。
  */
 const media = window.matchMedia("(prefers-color-scheme: dark)");
 

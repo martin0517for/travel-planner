@@ -20,9 +20,11 @@ import { renderPlaceList } from "./features/places/placeList.js";
 import { renderSettings } from "./features/settings/settings.js";
 import { renderTripLists } from "./features/lists/tripLists.js";
 import { renderSchedule } from "./features/schedule/schedule.js";
+import { settingsStore } from "./data/settings.js";
 
-applyTheme("system");
-watchSystemTheme(() => "system");
+// 外觀：照設定頁選的（跟隨系統／淺色／深色，v0.10.0）；跟隨系統時，iPhone 切換深色模式會即時跟著換
+applyTheme(settingsStore.get().theme);
+watchSystemTheme(() => settingsStore.get().theme);
 
 // 「地點資料庫」和「設定」是全域頁面（從右上角進入），
 // 記住進去之前在哪一頁，它們的返回鍵才能回到原處

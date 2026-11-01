@@ -1,0 +1,53 @@
+/* settings.css — 設定頁（v0.10.0）：外觀、資料備份、關於；匯入前確認面板 */
+.set-sec {
+  margin: var(--space-5) 2px var(--space-2);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  color: var(--color-ink-soft);
+}
+.set-sec:first-child { margin-top: var(--space-2); }
+.set-card {
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-paper-card);
+}
+.set-card .segmented { margin: 0; }
+.set-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: 0.92rem;
+}
+.set-row .mono {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--color-ink-soft);
+  text-align: right;
+}
+.set-btns { display: flex; gap: var(--space-2); margin-top: var(--space-3); }
+.set-btns .btn { flex: 1; }
+.set-note { margin: var(--space-3) 0 0; font-size: 0.82rem; line-height: 1.6; color: var(--color-ink-soft); }
+
+/* 匯入前確認 */
+.imp-list {
+  list-style: none;
+  margin: var(--space-3) 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-paper-card);
+  font-size: 0.92rem;
+  line-height: 1.9;
+}
+.imp-warn {
+  display: flex;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--color-pressed);
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+.imp-warn .icon { width: 18px; height: 18px; flex-shrink: 0; color: var(--color-danger); }

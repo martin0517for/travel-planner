@@ -62,7 +62,7 @@ function cleanActivity(raw) {
   };
 }
 
-function normalizeActivity(raw) {
+export function normalizeActivity(raw) {
   if (!raw || typeof raw !== "object" || !isValidId(raw.id) || !isValidId(raw.tripId)) return null;
   const act = cleanActivity(raw);
   if (!act.title) return null;

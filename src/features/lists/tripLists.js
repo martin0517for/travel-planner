@@ -1,7 +1,7 @@
 /**
  * tripLists.js — 旅程內的「清單」頁籤（2026-11-01，計畫書 9.2）。
  *
- * 上方分段切換：想去的地點｜想買的東西（想買的東西之後再做）。
+ * 上方分段切換：想去的地點｜筆記（v0.9.0，筆記在 features/notes/tripNotes.js）。
  *
  * 「想去的地點」版面（由上到下）：
  *   搜尋框（只搜尋這趟清單裡的地點）＋「＋」從地點資料庫加入
@@ -22,12 +22,13 @@ import { tripPlaceStore } from "../../data/tripPlaces.js";
 import { tripUsages, tripUsedPlaceIds } from "../../data/tripPlaceUsage.js";
 import { openTripPlaceAdder } from "./tripPlaceAdder.js";
 import { openTripPlaceDetail } from "./tripPlaceDetail.js";
+import { renderTripNotes } from "../notes/tripNotes.js";
 
 const state = { tripId: "", tab: "places", area: "", category: "", q: "" };
 
 const TABS = [
   { key: "places", label: "想去的地點" },
-  { key: "shopping", label: "想買的東西" },
+  { key: "notes", label: "筆記" }, // v0.9.0：原本的「想買的東西」改成「筆記」（想買／筆記／其他）
 ];
 
 /**
@@ -76,17 +77,8 @@ function paint(container, trip) {
   );
 
   const body = container.querySelector("#list-body");
-  if (state.tab === "shopping") {
-    render(
-      body,
-      html`
-        <div class="placeholder">
-          <div class="placeholder__badge">COMING SOON</div>
-          <h2>想買的東西</h2>
-          <p>這個清單會在之後的步驟實作。</p>
-        </div>
-      `
-    );
+  if (state.tab === "notes") {
+    renderTripNotes(body, trip);
     return;
   }
   paintPlaces(body, trip, chipScroll);

@@ -23,6 +23,7 @@ import { accommodationStore } from "./accommodations.js";
 import { activityStore } from "./activities.js";
 import { tripPlaceStore } from "./tripPlaces.js";
 import { dayPlanStore } from "./dayPlans.js";
+import { noteStore } from "./notes.js";
 
 const COLLECTION = "trips";
 export const NAME_MAX = 40;
@@ -34,7 +35,7 @@ function cleanText(value, max) {
 }
 
 /** 從本機讀出的一筆資料 → 合法的 Trip，或 null（略過） */
-function normalizeTrip(raw) {
+export function normalizeTrip(raw) {
   if (!raw || typeof raw !== "object" || !isValidId(raw.id)) return null;
   const name = cleanText(raw.name, NAME_MAX);
   if (!name) return null;
@@ -108,12 +109,13 @@ export const tripStore = {
     const next = all.filter((t) => t.id !== id);
     if (next.length === all.length) return { ok: false, errors: ["找不到這趟旅程"] };
     if (!writeCollection(COLLECTION, next)) return { ok: false, errors: [STORAGE_FAIL] };
-    // 一起刪掉屬於這趟旅程的資料（航班、住宿、活動、每日行程、旅程地點清單）
+    // 一起刪掉屬於這趟旅程的資料（航班、住宿、活動、每日行程、旅程地點清單、筆記）
     flightStore.removeByTrip(id);
     accommodationStore.removeByTrip(id);
     activityStore.removeByTrip(id);
     dayPlanStore.removeByTrip(id);
     tripPlaceStore.removeByTrip(id);
+    noteStore.removeByTrip(id);
     return { ok: true };
   },
 };

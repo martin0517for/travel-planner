@@ -83,7 +83,7 @@ function cleanPlace(raw) {
 }
 
 /** 從本機讀出的一筆 → 合法 Place 或 null（壞資料略過） */
-function normalizePlace(raw) {
+export function normalizePlace(raw) {
   if (!raw || typeof raw !== "object" || !isValidId(raw.id)) return null;
   const place = cleanPlace(raw);
   if (!place.name) return null;

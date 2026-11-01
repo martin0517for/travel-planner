@@ -129,7 +129,7 @@ function cleanRefs(list, pattern, max) {
   return out;
 }
 
-function normalizePlan(raw) {
+export function normalizePlan(raw) {
   if (!raw || typeof raw !== "object" || !isValidId(raw.id) || !isValidId(raw.tripId)) return null;
   if (!Number.isInteger(raw.day) || raw.day < 1 || raw.day > LIMITS.day) return null;
   const items = [];

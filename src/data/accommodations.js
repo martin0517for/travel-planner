@@ -57,7 +57,7 @@ function hasContent(s) {
   );
 }
 
-function normalizeAccommodation(raw) {
+export function normalizeAccommodation(raw) {
   if (!raw || typeof raw !== "object" || !isValidId(raw.id) || !isValidId(raw.tripId)) return null;
   const stay = cleanStay(raw);
   if (!hasContent(stay)) return null;

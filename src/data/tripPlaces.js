@@ -27,7 +27,7 @@ const STORAGE_FAIL = "儲存失敗：手機本機空間不足，或瀏覽器不�
 
 export const LIMITS = { notes: 1000 };
 
-function normalize(raw) {
+export function normalizeTripPlace(raw) {
   if (!raw || typeof raw !== "object") return null;
   if (!isValidId(raw.id) || !isValidId(raw.tripId) || !isValidId(raw.placeId)) return null;
   return {
@@ -45,7 +45,7 @@ function normalize(raw) {
 function loadAll() {
   const seen = new Set();
   const out = [];
-  for (const item of readCollection(COLLECTION).map(normalize)) {
+  for (const item of readCollection(COLLECTION).map(normalizeTripPlace)) {
     if (!item) continue;
     const key = `${item.tripId}|${item.placeId}`;
     if (seen.has(key)) continue;
