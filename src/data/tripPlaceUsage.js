@@ -8,12 +8,13 @@
  *   - 打開清單時，把這趟已經用到的地點補進清單（舊資料）
  *
  * 目前檢查航班、住宿、活動（9.5：小標寫活動名稱「環球影城」，預覽寫「活動 環球影城」）。
- * 之後加上：⑤ 行程（「Day 2」）。
+ * ⑤ 行程（2026-11-01）：小標寫「Day 2」，預覽寫「Day 2 行程」；同一天放兩次只算一次。
  * （placeUsage.js 是「所有旅程」範圍、刪除地點用；這裡只看一趟。）
  */
 import { flightStore, directionLabel } from "./flights.js";
 import { accommodationStore } from "./accommodations.js";
 import { activityStore } from "./activities.js";
+import { dayPlanStore } from "./dayPlans.js";
 import { formatDateShort } from "../core/dates.js";
 
 /** 回傳 [{ short, full }]；空陣列代表「未排入」 */
@@ -33,10 +34,14 @@ export function tripUsages(tripId, placeId) {
     if (!a.placeIds.includes(placeId)) continue;
     out.push({ short: a.title, full: `活動 ${a.title}` });
   }
+  for (const p of dayPlanStore.listByTrip(tripId)) {
+    if (!p.items.some((it) => it.placeId === placeId)) continue;
+    out.push({ short: `Day ${p.day}`, full: `Day ${p.day} 行程` });
+  }
   return out;
 }
 
-/** 這趟旅程的航班、住宿、活動用到的所有地點 id（打開清單時補進清單用） */
+/** 這趟旅程的航班、住宿、活動、行程用到的所有地點 id（打開清單時補進清單用） */
 export function tripUsedPlaceIds(tripId) {
   const ids = new Set();
   for (const f of flightStore.listByTrip(tripId)) {
@@ -45,5 +50,6 @@ export function tripUsedPlaceIds(tripId) {
   }
   for (const s of accommodationStore.listByTrip(tripId)) if (s.placeId) ids.add(s.placeId);
   for (const a of activityStore.listByTrip(tripId)) a.placeIds.forEach((id) => ids.add(id));
+  for (const p of dayPlanStore.listByTrip(tripId)) p.items.forEach((it) => it.placeId && ids.add(it.placeId));
   return [...ids];
 }

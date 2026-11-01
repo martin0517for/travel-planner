@@ -36,6 +36,11 @@ const PATHS = {
   up: '<path d="M6 15l6-6 6 6"/>',
   down: '<path d="M6 9l6 6 6-6"/>',
   remove: '<path d="M6 6l12 12M18 6L6 18"/>',
+  // 行程的純文字項目（⑤，2026-11-01）：移動、休息、其他（用餐用 restaurant）
+  move: '<path d="M4 12h14M13 6l6 6-6 6"/>',
+  rest: '<path d="M5 9h11v4a5 5 0 01-5 5h-1a5 5 0 01-5-5z"/><path d="M16 10h1.5a2.5 2.5 0 010 5H16M8 3.5v2.5M12 3.5v2.5"/>',
+  dot: '<circle cx="12" cy="12" r="3.5"/>',
+  warning: '<path d="M12 3l9.5 17h-19z"/><path d="M12 10v4.5M12 17.5v.5"/>',
   airport: '<path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 00-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z"/>',
 };
 

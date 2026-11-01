@@ -19,6 +19,7 @@ import { tripStore } from "./data/trips.js";
 import { renderPlaceList } from "./features/places/placeList.js";
 import { renderSettings } from "./features/settings/settings.js";
 import { renderTripLists } from "./features/lists/tripLists.js";
+import { renderSchedule } from "./features/schedule/schedule.js";
 
 applyTheme("system");
 watchSystemTheme(() => "system");
@@ -61,7 +62,7 @@ const comingSoon = (heading) => (container) =>
 const routes = {
   "/trips": renderTripList,
   "/trips/:id": tripPage("overview", "Overview", renderTripOverview),
-  "/trips/:id/schedule": tripPage("schedule", "Schedule", comingSoon("行程")),
+  "/trips/:id/schedule": tripPage("schedule", "Schedule", renderSchedule),
   "/trips/:id/map": tripPage("map", "Map", comingSoon("地圖")),
   "/trips/:id/lists": tripPage("lists", "Lists", renderTripLists),
   // 從某趟旅程裡打開時，帶入那趟旅程：地點前面會有圓圈，可以快速加入那趟的想去地點（9.2，2026-11-01）

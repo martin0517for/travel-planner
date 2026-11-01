@@ -89,3 +89,20 @@ export function formatRange(startDate, endDate) {
   const sameYear = startDate.slice(0, 4) === endDate.slice(0, 4);
   return `${startDate} → ${sameYear ? endDate.slice(5) : endDate}`;
 }
+
+/** "2027-03-25" 加 n 天 → "2027-03-27"（本地時間）；格式錯誤回傳 "" */
+export function addDays(str, n) {
+  const date = parseDate(str);
+  if (!date) return "";
+  date.setDate(date.getDate() + n);
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+/** 今天的 "YYYY-MM-DD"（本地時間） */
+export function todayStr() {
+  const now = new Date();
+  return addDays(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`, 0);
+}
