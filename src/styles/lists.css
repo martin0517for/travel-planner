@@ -167,3 +167,17 @@
 }
 .form__actions .btn:disabled { opacity: 0.4; cursor: default; }
 .tp-remove-hint { margin: var(--space-2) 0 0; }
+
+/* ---- 地點資料庫的快速加入圓圈（從旅程裡打開時，9.2 第 ④ 小步） ---- */
+.quick-add-hint { margin: 0 2px var(--space-3); }
+.quick-add {
+  width: var(--tap-size);
+  min-height: 60px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: var(--space-1);
+}
+.quick-add:active .adder-check { background: var(--color-pressed); }
+.quick-add:active .adder-check.is-on { background: var(--color-accent); }

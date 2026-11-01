@@ -1,10 +1,11 @@
 /**
  * placePicker.js — 選地點畫面（Place Picker），航班選機場、住宿選飯店共用（2026-11-01）。
  *
- * openPlacePicker({ title, category, selectedId, onPick })
+ * openPlacePicker({ title, category, selectedId, tripId, onPick })
  *   title       畫面標題，例如「選擇出發機場」
  *   category    預先選好的分類篩選（例如航班選機場時是 "transport"），使用者可以切到「全部」
  *   selectedId  目前已選的地點，清單上會打勾
+ *   tripId      有值時，這趟「想去的地點」清單裡的地點排在最前面，分成「這趟的地點」「其他地點」兩段（9.2，2026-11-01）
  *   onPick(place)  選好之後呼叫（畫面會自己關閉）
  *
  * 版面：搜尋框＋「新增地點」按鈕 → 地區篩選列 → 分類篩選列 → 地點清單。
@@ -14,15 +15,15 @@
  * 找不到時可以直接新增：開完整的地點表單，名稱帶入搜尋框的文字、分類帶入預設分類，
  * 存好後自動選中並回到原本的表單。
  *
- * 之後做「旅程地點清單」（計畫書 9.2）時，這裡要把這趟旅程的地點排在最前面。
  */
 import { html, render } from "../../core/html.js";
 import { icon } from "../../core/icons.js";
 import { openSheet } from "../../core/sheet.js";
 import { placeStore, PLACE_CATEGORIES, categoryLabel } from "../../data/places.js";
 import { openPlaceForm } from "./placeForm.js";
+import { tripPlaceStore } from "../../data/tripPlaces.js";
 
-export function openPlacePicker({ title = "選擇地點", category = "", selectedId = "", onPick } = {}) {
+export function openPlacePicker({ title = "選擇地點", category = "", selectedId = "", tripId = "", onPick } = {}) {
   const filters = { area: "", category, q: "" };
 
   openSheet({
@@ -106,7 +107,12 @@ export function openPlacePicker({ title = "選擇地點", category = "", selecte
           resultsBox,
           html`
             ${shown.length
-              ? html`<ul class="place-list">${shown.map((p) => pickerRow(p, p.id === selectedId))}</ul>`
+              ? groupByTrip(shown).map(
+                  (g) => html`
+                    ${g.title ? html`<div class="tp-section"><span>${g.title}</span><span>${g.list.length}</span></div>` : ""}
+                    <ul class="place-list">${g.list.map((p) => pickerRow(p, p.id === selectedId))}</ul>
+                  `
+                )
               : html`<p class="muted center">${all.length ? "沒有符合條件的地點。" : "地點資料庫還是空的。"}</p>`}
             ${filtered && all.length
               ? html`<p class="field__hint center">找不到？可以切到「全部」，或按右上角「＋」新增。</p>`
@@ -123,6 +129,19 @@ export function openPlacePicker({ title = "選擇地點", category = "", selecte
           })
         );
         resultsBox.querySelector('[data-action="add"]').addEventListener("click", addPlace);
+      }
+
+      /** 有 tripId 時分成「這趟的地點」「其他地點」；任一段是空的就不顯示標題 */
+      function groupByTrip(list) {
+        if (!tripId) return [{ title: "", list }];
+        const inTrip = tripPlaceStore.placeIdsOf(tripId);
+        const mine = list.filter((p) => inTrip.has(p.id));
+        const others = list.filter((p) => !inTrip.has(p.id));
+        if (!mine.length || !others.length) return [{ title: "", list }];
+        return [
+          { title: "這趟的地點", list: mine },
+          { title: "其他地點", list: others },
+        ];
       }
 
       function addPlace() {
@@ -184,10 +203,11 @@ function pickerRow(p, selected) {
  *   iconName     按鈕左邊的圖示
  *   category     選地點畫面預先篩選的分類
  *   pickerTitle  選地點畫面的標題
+ *   tripId       這趟旅程（選地點畫面會把這趟清單裡的地點排最前面）
  *   value        目前的地點 id（或 ""）
  *   onChange(placeId)
  */
-export function mountPlaceField(box, { label, emptyText, iconName, category, pickerTitle, value = "", onChange }) {
+export function mountPlaceField(box, { label, emptyText, iconName, category, pickerTitle, tripId = "", value = "", onChange }) {
   let placeId = value;
 
   function paint() {
@@ -214,6 +234,7 @@ export function mountPlaceField(box, { label, emptyText, iconName, category, pic
       openPlacePicker({
         title: pickerTitle,
         category,
+        tripId,
         selectedId: placeId,
         onPick: (p) => set(p.id),
       })

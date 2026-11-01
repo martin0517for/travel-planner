@@ -109,6 +109,7 @@ export function openFlightForm({ tripId, flight = null, onSaved } = {}) {
           emptyText: "選擇機場",
           iconName: "plane",
           category: "transport",
+          tripId: tripId || (flight && flight.tripId) || "",
           pickerTitle: `選擇${AIRPORT_LABELS[key]}`,
           value: airports[key],
           onChange: (id) => (airports[key] = id),

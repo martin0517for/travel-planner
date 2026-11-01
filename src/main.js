@@ -44,6 +44,17 @@ const tripPage = (active, eyebrow, renderBody) => (container, { id }) => {
   return { eyebrow, title: trip.name, back: "/trips", tripId: trip.id, active };
 };
 
+/** 從「進入全域頁面前的路徑」找出所在的旅程（例如 /trips/trip_abc/lists → 那趟旅程），不在旅程裡就是 null */
+function tripFromPath(path) {
+  const m = /^\/trips\/([^/]+)/.exec(path || "");
+  if (!m) return null;
+  try {
+    return tripStore.get(decodeURIComponent(m[1]));
+  } catch {
+    return null;
+  }
+}
+
 const comingSoon = (heading) => (container) =>
   renderPlaceholder(container, { heading, note: "這一頁會在後續步驟實作。" });
 
@@ -53,7 +64,8 @@ const routes = {
   "/trips/:id/schedule": tripPage("schedule", "Schedule", comingSoon("行程")),
   "/trips/:id/map": tripPage("map", "Map", comingSoon("地圖")),
   "/trips/:id/lists": tripPage("lists", "Lists", renderTripLists),
-  "/places": (container) => ({ ...renderPlaceList(container), back: lastMainPath, page: "places" }),
+  // 從某趟旅程裡打開時，帶入那趟旅程：地點前面會有圓圈，可以快速加入那趟的想去地點（9.2，2026-11-01）
+  "/places": (container) => ({ ...renderPlaceList(container, { trip: tripFromPath(lastMainPath) }), back: lastMainPath, page: "places" }),
   "/settings": (container) => ({ ...renderSettings(container), back: lastMainPath, page: "settings" }),
 };
 

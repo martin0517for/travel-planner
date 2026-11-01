@@ -95,6 +95,7 @@ export function openAccommodationForm({ tripId, stay = null, onSaved } = {}) {
         emptyText: "選擇飯店",
         iconName: "hotel",
         category: "hotel",
+        tripId: tripId || (stay && stay.tripId) || "",
         pickerTitle: "選擇飯店",
         value: placeId,
         onChange: (id) => (placeId = id),
