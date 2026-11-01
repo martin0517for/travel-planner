@@ -23,6 +23,7 @@
  */
 import { readCollection, writeCollection, newId, isValidId } from "../core/storage.js";
 import { isValidDate, isValidTime } from "../core/dates.js";
+import { tripPlaceStore } from "./tripPlaces.js";
 
 const COLLECTION = "accommodations";
 const STORAGE_FAIL = "儲存失敗：手機本機空間不足，或瀏覽器不允許儲存（例如無痕模式）";
@@ -98,6 +99,14 @@ function byCheckIn(a, b) {
   return a.createdAt.localeCompare(b.createdAt);
 }
 
+/**
+ * 計畫書 9.2：住宿的飯店自動加入這趟的「想去的地點」清單（2026-11-01）。
+ * 換掉飯店或刪除住宿時，舊飯店繼續留在清單（變回「未排入」）。
+ */
+function addHotelToTripList(stay) {
+  if (stay.placeId) tripPlaceStore.addMany(stay.tripId, [stay.placeId]);
+}
+
 export const accommodationStore = {
   listByTrip(tripId) {
     return loadAll().filter((s) => s.tripId === tripId).sort(byCheckIn);
@@ -117,6 +126,7 @@ export const accommodationStore = {
     const all = loadAll();
     all.push(stay);
     if (!writeCollection(COLLECTION, all)) return { ok: false, errors: [STORAGE_FAIL] };
+    addHotelToTripList(stay);
     return { ok: true, stay };
   },
 
@@ -128,6 +138,7 @@ export const accommodationStore = {
     if (index === -1) return { ok: false, errors: ["找不到這筆住宿"] };
     all[index] = { ...all[index], ...value, updatedAt: new Date().toISOString() };
     if (!writeCollection(COLLECTION, all)) return { ok: false, errors: [STORAGE_FAIL] };
+    addHotelToTripList(all[index]);
     return { ok: true, stay: all[index] };
   },
 

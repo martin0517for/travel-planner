@@ -165,3 +165,5 @@
   display: block;
   margin: var(--space-3) auto 0;
 }
+.form__actions .btn:disabled { opacity: 0.4; cursor: default; }
+.tp-remove-hint { margin: var(--space-2) 0 0; }

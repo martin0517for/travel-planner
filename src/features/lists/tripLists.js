@@ -9,7 +9,7 @@
  *   三個區塊：未排入 → 已排入 → 去過（各自顯示數量；沒有地點的區塊不顯示）
  *     - 同一區塊內依加入先後排列
  *     - 勾選框只有點框本身才會勾「去過」；點其他地方開預覽
- *     - 已排入：變淡，右邊註明用在哪裡（第 ③ 小步接上航班、住宿；⑤ Timeline 接上 Day X）
+ *     - 已排入：變淡，右邊小標簡短註明用在哪裡（例如「去程航班」，兩處以上「去程航班 +1」）
  *     - 去過：打勾＋變淡（使用者決定不加刪除線）
  *
  * 篩選條件存在這個檔案的變數裡；換到別趟旅程時重置。
@@ -18,6 +18,7 @@ import { html, render } from "../../core/html.js";
 import { icon } from "../../core/icons.js";
 import { placeStore, PLACE_CATEGORIES, categoryLabel } from "../../data/places.js";
 import { tripPlaceStore } from "../../data/tripPlaces.js";
+import { tripUsages, tripUsedPlaceIds } from "../../data/tripPlaceUsage.js";
 import { openTripPlaceAdder } from "./tripPlaceAdder.js";
 import { openTripPlaceDetail } from "./tripPlaceDetail.js";
 
@@ -29,17 +30,17 @@ const TABS = [
 ];
 
 /**
- * 某個地點在這趟旅程用在哪裡（航班、住宿、行程）→ 文字陣列，例如 ["去程航班"]。
- * 空陣列代表「未排入」。第 ③ 小步接上航班、住宿，⑤ Timeline 接上行程。
+ * 某個地點在這趟旅程用在哪裡 → [{ short, full }]，例如 [{ short: "去程航班", full: "去程航班 BR198" }]。
+ * 空陣列代表「未排入」。目前看航班、住宿（data/tripPlaceUsage.js），之後加上活動、行程。
  */
-function scheduledIn(/* tripId, placeId */) {
-  return [];
-}
+const scheduledIn = tripUsages;
 
 export function renderTripLists(container, trip) {
   if (state.tripId !== trip.id) {
     Object.assign(state, { tripId: trip.id, area: "", category: "", q: "" });
   }
+  // 舊資料補上：這趟航班、住宿已經用到的地點，如果還不在清單裡就加進去（已在的會略過，不會重複寫入）
+  tripPlaceStore.addMany(trip.id, tripUsedPlaceIds(trip.id).filter((id) => placeStore.get(id)));
   paint(container, trip);
 }
 
@@ -247,10 +248,16 @@ function row({ entry, place: p, usedIn }) {
             ? html`<span class="tp-row__note">${icon("note")}<span>${entry.notes.trim().split("\n")[0]}</span></span>`
             : ""}
         </span>
-        ${usedIn.length ? html`<span class="tp-row__used">${usedIn[0]}${usedIn.length > 1 ? ` +${usedIn.length - 1}` : ""}</span>` : ""}
+        ${usedIn.length ? html`<span class="tp-row__used">${usedLabel(usedIn)}</span>` : ""}
       </button>
     </li>
   `;
+}
+
+/** 小標：相同的只算一次，例如兩段住宿同一家飯店只顯示「住宿」；不同的顯示「去程航班 +1」 */
+function usedLabel(usedIn) {
+  const shorts = [...new Set(usedIn.map((u) => u.short))];
+  return shorts.length > 1 ? `${shorts[0]} +${shorts.length - 1}` : shorts[0];
 }
 
 function chip(filter, value, label, active, category) {

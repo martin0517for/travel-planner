@@ -26,6 +26,7 @@
  */
 import { readCollection, writeCollection, newId, isValidId } from "../core/storage.js";
 import { isValidDateTime } from "../core/dates.js";
+import { tripPlaceStore } from "./tripPlaces.js";
 
 const COLLECTION = "flights";
 const STORAGE_FAIL = "儲存失敗：手機本機空間不足，或瀏覽器不允許儲存（例如無痕模式）";
@@ -116,6 +117,14 @@ function byDeparture(a, b) {
   return a.createdAt.localeCompare(b.createdAt);
 }
 
+/**
+ * 計畫書 9.2：航班的機場自動加入這趟的「想去的地點」清單（2026-11-01）。
+ * 換掉機場或刪除航班時，舊機場繼續留在清單（變回「未排入」）。
+ */
+function addAirportsToTripList(flight) {
+  tripPlaceStore.addMany(flight.tripId, [flight.departurePlaceId, flight.arrivalPlaceId].filter(Boolean));
+}
+
 export const flightStore = {
   /** 某趟旅程的所有航班（已排序） */
   listByTrip(tripId) {
@@ -136,6 +145,7 @@ export const flightStore = {
     const all = loadAll();
     all.push(flight);
     if (!writeCollection(COLLECTION, all)) return { ok: false, errors: [STORAGE_FAIL] };
+    addAirportsToTripList(flight);
     return { ok: true, flight };
   },
 
@@ -147,6 +157,7 @@ export const flightStore = {
     if (index === -1) return { ok: false, errors: ["找不到這個航班"] };
     all[index] = { ...all[index], ...value, updatedAt: new Date().toISOString() };
     if (!writeCollection(COLLECTION, all)) return { ok: false, errors: [STORAGE_FAIL] };
+    addAirportsToTripList(all[index]);
     return { ok: true, flight: all[index] };
   },
 
