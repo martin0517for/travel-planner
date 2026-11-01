@@ -78,7 +78,7 @@ export function openItemForm({ trip, day, item = null, onSaved } = {}) {
         </div>
 
         <div class="field">
-          <label for="it-transport">交通方式（怎麼到下一站）</label>
+          <label for="it-transport">交通方式</label>
           <input id="it-transport" ${raw(TEXT_ATTRS)} name="transport" maxlength="${LIMITS.transport}"
                  placeholder="例如：JR 山手線 15 分" value="${v.transport}" />
           <div class="quick-picks">

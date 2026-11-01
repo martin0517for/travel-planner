@@ -49,7 +49,7 @@ export function openItemDetail({ trip, dayInfo, item, onChanged }) {
 
       ${detailRow("時間", item.time || "未填", true)}
       ${sub ? detailRow("說明", sub) : ""}
-      ${item.transport ? detailRow("交通方式（到下一站）", item.transport) : ""}
+      ${item.transport ? detailRow("交通方式", item.transport) : ""}
       ${place && place.address ? detailRow("地址", place.address) : ""}
       ${item.notes ? detailRow("備註", linkify(item.notes), false, true) : ""}
 

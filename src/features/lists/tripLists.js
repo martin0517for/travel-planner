@@ -7,9 +7,10 @@
  *   搜尋框（只搜尋這趟清單裡的地點）＋「＋」從地點資料庫加入
  *   地區篩選列、分類篩選列（只列出這趟清單裡用到的）
  *   三個區塊：未排入 → 已排入 → 去過（各自顯示數量；沒有地點的區塊不顯示）
- *     - 同一區塊內依加入先後排列
+ *     - 未排入、去過：依加入先後排列
+ *     - 已排入（v0.8.1）：航班 → 住宿 → 活動 → Day 1 → Day 2 …（見 data/tripPlaceUsage.js）
  *     - 勾選框只有點框本身才會勾「去過」；點其他地方開預覽
- *     - 已排入：變淡，右邊小標簡短註明用在哪裡（「航班」「住宿」，兩種以上「航班 +1」）
+ *     - 已排入：變淡，右邊小標簡短註明用在哪裡（「航班」「住宿」、活動名稱、「Day 2」，兩種以上顯示最前面那個「航班 +1」）
  *     - 去過：打勾＋變淡（使用者決定不加刪除線）
  *
  * 篩選條件存在這個檔案的變數裡；換到別趟旅程時重置。
@@ -191,7 +192,12 @@ function paintResults(box, trip, items, repaint) {
   const withStatus = shown.map((x) => ({ ...x, usedIn: scheduledIn(trip.id, x.place.id) }));
   const groups = [
     { key: "todo", title: "未排入", list: withStatus.filter((x) => !x.entry.visited && !x.usedIn.length) },
-    { key: "scheduled", title: "已排入", list: withStatus.filter((x) => !x.entry.visited && x.usedIn.length) },
+    {
+      key: "scheduled",
+      title: "已排入",
+      // 航班 → 住宿 → 活動 → Day 1、Day 2 …（用最前面那個用途排；相同時維持加入先後）
+      list: withStatus.filter((x) => !x.entry.visited && x.usedIn.length).sort((a, b) => a.usedIn[0].rank - b.usedIn[0].rank),
+    },
     { key: "visited", title: "去過", list: withStatus.filter((x) => x.entry.visited) },
   ].filter((g) => g.list.length);
 
