@@ -28,7 +28,7 @@ const state = { tripId: "", tab: "places", area: "", category: "", q: "" };
 
 const TABS = [
   { key: "places", label: "想去的地點" },
-  { key: "notes", label: "筆記" }, // v0.9.0：原本的「想買的東西」改成「筆記」（想買／筆記／其他）
+  { key: "notes", label: "筆記" }, // v0.9.0：原本的「想買的東西」改成「筆記」（類型見 data/notes.js）
 ];
 
 /**

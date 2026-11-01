@@ -10,9 +10,9 @@ import { linkify, linkSource } from "../../core/linkify.js";
 import { noteStore, noteKind } from "../../data/notes.js";
 import { openNoteForm } from "./noteForm.js";
 
-/** 完成時的說法：想買＝買了、筆記＝看過、其他＝完成 */
+/** 完成時的說法：筆記＝看過、行程＝去過、想買／紀念品＝買了、其他＝完成（見 data/notes.js） */
 export function doneLabel(kind) {
-  return kind === "buy" ? "買了" : kind === "note" ? "看過" : "完成";
+  return noteKind(kind).done;
 }
 
 export function openNoteDetail({ note, onChanged }) {

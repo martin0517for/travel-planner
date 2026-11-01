@@ -28,6 +28,7 @@ const PATHS = {
   // 地點分類
   attraction: '<path d="M3 20l5-9 4 5 3-4 6 8H3z"/><circle cx="8" cy="7" r="2"/>',
   restaurant: '<path d="M5 3v7a2 2 0 002 2h1a2 2 0 002-2V3M7.5 3v18"/><path d="M19 15V3a4 4 0 00-4 4v6a2 2 0 002 2h2zm0 0v6"/>',
+  gift: '<rect x="3.5" y="9" width="17" height="11" rx="1"/><path d="M2.5 9h19M12 9v11M12 9c-1.5-3.5-5.5-4.5-5.5-2 0 1.5 2.5 2 5.5 2zM12 9c1.5-3.5 5.5-4.5 5.5-2 0 1.5-2.5 2-5.5 2z"/>',
   shopping: '<path d="M6 3L4 7v13a1 1 0 001 1h14a1 1 0 001-1V7l-2-4z"/><path d="M4 7h16M16 11a4 4 0 01-8 0"/>',
   hotel: '<path d="M3 19V6M3 15h18v4M21 15v-3a3 3 0 00-3-3h-7v6"/><circle cx="7" cy="11.5" r="2"/>',
   transport: '<rect x="5" y="3" width="14" height="13" rx="3"/><path d="M5 10h14M9 21l-2-3M15 21l2-3"/><circle cx="9" cy="13" r=".8"/><circle cx="15" cy="13" r=".8"/>',

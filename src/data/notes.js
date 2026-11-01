@@ -4,11 +4,12 @@
  * Note 欄位：
  *   id         string   例如 "note_k3x9q2m7a1bc"
  *   tripId     string   屬於哪一趟旅程（每趟各自一份；刪除旅程時連帶刪除）
- *   kind       string   類型：buy 想買／note 筆記／other 其他（預設 note）
+ *   kind       string   類型：note 筆記（預設）／trip 行程／buy 想買／souvenir 紀念品／other 其他
+ *                      （v0.10.1 加上行程、紀念品）
  *   title      string   標題（必填），最多 60 字（欄位不叫 name，避免 iPhone 當成聯絡人表單）
  *   url        string   參考連結，一個，只接受 http/https；可空
  *   body       string   內容，最多 3000 字（網址在畫面上會變成連結）；可空
- *   done       boolean  完成（想買＝買了、筆記＝看過）
+ *   done       boolean  完成（筆記＝看過、行程＝去過、想買／紀念品＝買了、其他＝完成）
  *   createdAt / updatedAt   列表新的排在上面（createdAt）
  *
  * 資安：寫入前一律經過 validateNoteInput；從本機讀出的資料也經過 normalizeNote，格式不對的略過。
@@ -22,15 +23,18 @@ const STORAGE_FAIL = "儲存失敗：手機本機空間不足，或瀏覽器不�
 
 export const LIMITS = { title: 60, url: 500, body: 3000 };
 
+// 順序＝表單選項與篩選列的順序（v0.10.1 使用者決定）
 export const NOTE_KINDS = [
-  { value: "buy", label: "想買", icon: "shopping", cat: "cat--shopping" },
-  { value: "note", label: "筆記", icon: "note", cat: "cat--kind" },
-  { value: "other", label: "其他", icon: "dot", cat: "cat--kind" },
+  { value: "note", label: "筆記", icon: "note", cat: "cat--kind", done: "看過" },
+  { value: "trip", label: "行程", icon: "schedule", cat: "cat--attraction", done: "去過" },
+  { value: "buy", label: "想買", icon: "shopping", cat: "cat--shopping", done: "買了" },
+  { value: "souvenir", label: "紀念品", icon: "gift", cat: "cat--hotel", done: "買了" },
+  { value: "other", label: "其他", icon: "dot", cat: "cat--kind", done: "完成" },
 ];
 const KIND_VALUES = new Set(NOTE_KINDS.map((k) => k.value));
 
 export function noteKind(value) {
-  return NOTE_KINDS.find((k) => k.value === value) || NOTE_KINDS[1];
+  return NOTE_KINDS.find((k) => k.value === value) || NOTE_KINDS[0];
 }
 
 function cleanText(value, max) {
