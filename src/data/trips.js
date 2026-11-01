@@ -19,6 +19,7 @@
 import { readCollection, writeCollection, newId, isValidId } from "../core/storage.js";
 import { isValidDate, parseDate } from "../core/dates.js";
 import { flightStore } from "./flights.js";
+import { accommodationStore } from "./accommodations.js";
 
 const COLLECTION = "trips";
 export const NAME_MAX = 40;
@@ -106,6 +107,7 @@ export const tripStore = {
     if (!writeCollection(COLLECTION, next)) return { ok: false, errors: [STORAGE_FAIL] };
     // 一起刪掉屬於這趟旅程的資料（之後還有住宿、行程、清單）
     flightStore.removeByTrip(id);
+    accommodationStore.removeByTrip(id);
     return { ok: true };
   },
 };

@@ -1,7 +1,7 @@
 /**
  * tripOverview.js — 旅程「總覽」頁。
- * 上方是旅程資訊與「編輯」，下面是航班區塊（2026-11-01）；住宿區塊之後加入。
- * 航班區塊目前是簡單列表，第 4 步再做正式排版。
+ * 上方是旅程資訊與「編輯」，下面是航班、住宿區塊（2026-11-01）。
+ * 兩個區塊目前是簡單列表，第 4 步再做正式排版。
  */
 import { html, render } from "../../core/html.js";
 import { tripStatus, formatRange } from "../../core/dates.js";
@@ -12,10 +12,14 @@ import { formatDateTime } from "../../core/dates.js";
 import { flightStore, directionLabel } from "../../data/flights.js";
 import { openFlightForm } from "../flights/flightForm.js";
 import { openFlightDetail, flightTitle, airportName } from "../flights/flightDetail.js";
+import { accommodationStore } from "../../data/accommodations.js";
+import { openAccommodationForm } from "../accommodations/accommodationForm.js";
+import { openAccommodationDetail, stayTitle, stayWhen, nightsText } from "../accommodations/accommodationDetail.js";
 
 export function renderTripOverview(container, trip, refresh) {
   const status = tripStatus(trip.startDate, trip.endDate);
   const flights = flightStore.listByTrip(trip.id);
+  const stays = accommodationStore.listByTrip(trip.id);
   render(
     container,
     html`
@@ -41,7 +45,13 @@ export function renderTripOverview(container, trip, refresh) {
         ? html`<ul class="place-list">${flights.map(flightRow)}</ul>`
         : html`<p class="muted">還沒有航班。</p>`}
 
-      <p class="muted center section-head--spaced">住宿會在後續步驟加入這一頁。</p>
+      <div class="section-head section-head--spaced">
+        <h3 class="section-head__title">住宿</h3>
+        <button type="button" class="btn btn--small" data-action="add-stay">${icon("plus")}新增</button>
+      </div>
+      ${stays.length
+        ? html`<ul class="place-list">${stays.map(stayRow)}</ul>`
+        : html`<p class="muted">還沒有住宿。</p>`}
     `
   );
 
@@ -52,6 +62,16 @@ export function renderTripOverview(container, trip, refresh) {
     btn.addEventListener("click", () => {
       const flight = flights.find((f) => f.id === btn.dataset.flight);
       if (flight) openFlightDetail({ flight, onChanged: refresh });
+    })
+  );
+
+  container.querySelector('[data-action="add-stay"]').addEventListener("click", () =>
+    openAccommodationForm({ tripId: trip.id, onSaved: refresh })
+  );
+  container.querySelectorAll("[data-stay]").forEach((btn) =>
+    btn.addEventListener("click", () => {
+      const stay = stays.find((s) => s.id === btn.dataset.stay);
+      if (stay) openAccommodationDetail({ stay, onChanged: refresh });
     })
   );
 
@@ -77,6 +97,24 @@ function flightRow(f) {
           ${time ? html`<span class="place-row__sub mono">${time}</span>` : ""}
         </span>
         <span class="badge">${directionLabel(f.direction)}</span>
+      </button>
+    </li>
+  `;
+}
+
+function stayRow(s) {
+  const when = [stayWhen(s.checkInDate), stayWhen(s.checkOutDate)].filter(Boolean).join(" → ");
+  const nights = nightsText(s);
+  return html`
+    <li>
+      <button type="button" class="place-row" data-stay="${s.id}">
+        <span class="place-row__icon cat--hotel">${icon("hotel")}</span>
+        <span class="place-row__body">
+          <span class="place-row__name">${stayTitle(s)}</span>
+          ${when ? html`<span class="place-row__sub mono">${when}</span>` : ""}
+          ${s.platform ? html`<span class="place-row__sub">${s.platform}</span>` : ""}
+        </span>
+        ${nights ? html`<span class="badge">${nights}</span>` : ""}
       </button>
     </li>
   `;

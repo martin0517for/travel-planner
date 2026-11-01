@@ -172,3 +172,61 @@ function pickerRow(p, selected) {
     </li>
   `;
 }
+
+/**
+ * mountPlaceField(box, options) — 表單裡的「選地點」欄位（航班選機場、住宿選飯店共用）。
+ *   沒選時顯示 emptyText（例如「選擇機場」）；選了顯示名稱＋地區，右邊有「清除」。
+ *   按下去開選地點畫面；選好或清除後自己重畫，並呼叫 onChange(placeId)。
+ *
+ * options：
+ *   label        欄位標題（例如「出發機場」）
+ *   emptyText    沒選時的文字
+ *   iconName     按鈕左邊的圖示
+ *   category     選地點畫面預先篩選的分類
+ *   pickerTitle  選地點畫面的標題
+ *   value        目前的地點 id（或 ""）
+ *   onChange(placeId)
+ */
+export function mountPlaceField(box, { label, emptyText, iconName, category, pickerTitle, value = "", onChange }) {
+  let placeId = value;
+
+  function paint() {
+    const place = placeId ? placeStore.get(placeId) : null;
+    const missing = placeId && !place; // 存了 id，但地點已經不存在
+    render(
+      box,
+      html`
+        <div class="field__legend">${label}</div>
+        <div class="picker-field">
+          <button type="button" class="picker-btn ${place ? "has-value" : ""}" data-pick-field>
+            ${icon(iconName)}
+            <span class="picker-btn__text">
+              ${place
+                ? html`<span class="picker-btn__name">${place.name}</span>${place.area ? html`<span class="picker-btn__sub">${place.area}</span>` : ""}`
+                : html`<span class="is-empty">${missing ? "（地點已刪除）請重新選擇" : emptyText}</span>`}
+            </span>
+          </button>
+          ${placeId ? html`<button type="button" class="btn btn--small" data-clear-field>清除</button>` : ""}
+        </div>
+      `
+    );
+    box.querySelector("[data-pick-field]").addEventListener("click", () =>
+      openPlacePicker({
+        title: pickerTitle,
+        category,
+        selectedId: placeId,
+        onPick: (p) => set(p.id),
+      })
+    );
+    const clear = box.querySelector("[data-clear-field]");
+    if (clear) clear.addEventListener("click", () => set(""));
+  }
+
+  function set(id) {
+    placeId = id;
+    paint();
+    if (onChange) onChange(id);
+  }
+
+  paint();
+}

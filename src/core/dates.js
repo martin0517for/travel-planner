@@ -58,7 +58,21 @@ export function isValidDateTime(str) {
   return Number(m[2]) <= 23 && Number(m[3]) <= 59;
 }
 
-const WEEKDAYS = ["日", "一", "二", "三", "四", "五", "六"];
+/** 時間（<input type="time"> 的格式）："HH:mm"，iPhone 有時會多帶秒數，也接受 */
+export function isValidTime(str) {
+  if (typeof str !== "string") return false;
+  const m = /^(\d{2}):(\d{2})(:\d{2})?$/.exec(str);
+  return Boolean(m) && Number(m[1]) <= 23 && Number(m[2]) <= 59;
+}
+
+/** 顯示用："2027-03-25" → "03-25（四）"；withYear 為 true 時前面加年份 */
+export function formatDateShort(str, withYear = false) {
+  const date = parseDate(str);
+  if (!date) return "";
+  return `${withYear ? str : str.slice(5)}（${WEEKDAYS[date.getDay()]}）`;
+}
+
+const WEEKDAYS =["日", "一", "二", "三", "四", "五", "六"];
 
 /** 顯示用："2027-03-25T08:30" → "03-25（四）08:30"；withYear 為 true 時前面加年份 */
 export function formatDateTime(str, withYear = false) {

@@ -11,9 +11,7 @@
 import { html, raw, render } from "../../core/html.js";
 import { openSheet } from "../../core/sheet.js";
 import { flightStore, FLIGHT_DIRECTIONS, LIMITS } from "../../data/flights.js";
-import { placeStore } from "../../data/places.js";
-import { icon } from "../../core/icons.js";
-import { openPlacePicker } from "../places/placePicker.js";
+import { mountPlaceField } from "../places/placePicker.js";
 
 // 所有文字欄位用同一組設定（同一種鍵盤，避免切換欄位時鍵盤高度不同而跳動）
 const TEXT_ATTRS = 'autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" type="search" enterkeyhint="done"';
@@ -103,31 +101,19 @@ export function openFlightForm({ tripId, flight = null, onSaved } = {}) {
       const form = panel.querySelector("form");
       const errorsBox = panel.querySelector(".form__errors");
 
-      // 畫出機場欄位，並綁定「選擇」「清除」
+      // 機場欄位（選地點畫面預先篩選「交通」，2026-11-01 機場併入交通）
       const AIRPORT_LABELS = { departure: "出發機場", arrival: "抵達機場" };
-      function paintAirport(key) {
-        const box = panel.querySelector(`[data-airport="${key}"]`);
-        render(box, airportField(AIRPORT_LABELS[key], airports[key]));
-        box.querySelector("[data-pick]").addEventListener("click", () =>
-          openPlacePicker({
-            title: `選擇${AIRPORT_LABELS[key]}`,
-            category: "transport", // 2026-11-01 機場併入交通
-            selectedId: airports[key],
-            onPick: (place) => {
-              airports[key] = place.id;
-              paintAirport(key);
-            },
-          })
-        );
-        const clear = box.querySelector("[data-clear]");
-        if (clear)
-          clear.addEventListener("click", () => {
-            airports[key] = "";
-            paintAirport(key);
-          });
+      for (const key of ["departure", "arrival"]) {
+        mountPlaceField(panel.querySelector(`[data-airport="${key}"]`), {
+          label: AIRPORT_LABELS[key],
+          emptyText: "選擇機場",
+          iconName: "plane",
+          category: "transport",
+          pickerTitle: `選擇${AIRPORT_LABELS[key]}`,
+          value: airports[key],
+          onChange: (id) => (airports[key] = id),
+        });
       }
-      paintAirport("departure");
-      paintAirport("arrival");
 
       form.addEventListener("submit", (e) => {
         e.preventDefault();
@@ -157,24 +143,4 @@ export function openFlightForm({ tripId, flight = null, onSaved } = {}) {
       panel.querySelector('[data-action="cancel"]').addEventListener("click", close);
     },
   });
-}
-
-/** 機場欄位：沒選時顯示「選擇機場」；選了顯示名稱＋地區，右邊有「清除」 */
-function airportField(label, placeId) {
-  const place = placeId ? placeStore.get(placeId) : null;
-  const missing = placeId && !place; // 存了 id，但地點已經不存在
-  return html`
-    <div class="field__legend">${label}</div>
-    <div class="picker-field">
-      <button type="button" class="picker-btn ${place ? "has-value" : ""}" data-pick>
-        ${icon("plane")}
-        <span class="picker-btn__text">
-          ${place
-            ? html`<span class="picker-btn__name">${place.name}</span>${place.area ? html`<span class="picker-btn__sub">${place.area}</span>` : ""}`
-            : html`<span class="is-empty">${missing ? "（地點已刪除）請重新選擇" : "選擇機場"}</span>`}
-        </span>
-      </button>
-      ${placeId ? html`<button type="button" class="btn btn--small" data-clear>清除</button>` : ""}
-    </div>
-  `;
 }

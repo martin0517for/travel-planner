@@ -11,7 +11,8 @@
 .field input.is-upper::placeholder { text-transform: none; }
 
 /* iPhone 原生的日期時間欄位：外觀與一般欄位一致、內容靠左 */
-.field input[type="datetime-local"] {
+.field input[type="datetime-local"],
+.field input[type="time"] {
   display: block;
   width: 100%;
   min-height: var(--tap-size);
@@ -26,7 +27,8 @@
   -webkit-appearance: none;
   appearance: none;
 }
-.field input[type="datetime-local"]::-webkit-date-and-time-value { text-align: left; }
+.field input[type="datetime-local"]::-webkit-date-and-time-value,
+.field input[type="time"]::-webkit-date-and-time-value { text-align: left; }
 
 /* 表單裡的「選地點」欄位：按鈕＋（選了之後）清除 */
 .picker-field {
