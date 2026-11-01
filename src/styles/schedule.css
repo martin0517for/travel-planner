@@ -183,3 +183,27 @@
 }
 .oor-day__head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: var(--space-1); }
 .oor-day__items { font-size: 0.85rem; margin-bottom: var(--space-3); overflow-wrap: anywhere; }
+
+/* ---- 新增行程：「活動」分頁（v0.8.2） ---- */
+.act-new { width: 100%; margin-bottom: var(--space-4); }
+.act-choose__title { margin-bottom: var(--space-2); }
+.act-choose {
+  list-style: none;
+  margin: 0 0 var(--space-2);
+  padding: 0;
+  border-radius: var(--radius-md, 12px);
+  background: var(--color-paper-card);
+  overflow: hidden;
+}
+.act-choose li + li { border-top: 1px solid var(--color-line); }
+.act-choose__row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--tap-size);
+  padding: var(--space-3);
+  text-align: left;
+}
+.act-choose__row:active { background: var(--color-pressed); }
+.act-choose__empty { margin: var(--space-2) 0; }

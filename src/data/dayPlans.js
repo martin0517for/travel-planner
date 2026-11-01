@@ -18,6 +18,9 @@
  *                        "a:<活動 id>"   活動（一段日期時每天各自記錄位置）
  *                      航班、住宿、活動只記 id，不複製它們的資料。
  *                      順序裡沒有的（新出現的）由畫面依預設位置插入；已不存在的自動略過。
+ *   activityIds string[] 排在這天的「沒有日期的活動」（v0.8.2 使用者決定）：
+ *                      有日期的活動照日期自動出現；沒日期的活動從行程頁加入時記在這裡，
+ *                      可以排在好幾天（每天各記一筆）。活動之後填了日期，就從所有天移除（改照日期出現）。
  *   createdAt / updatedAt
  *
  * Item（行程項目）欄位：地點、文字至少填一項
@@ -46,7 +49,7 @@ import { tripPlaceStore } from "./tripPlaces.js";
 const COLLECTION = "dayPlans";
 const STORAGE_FAIL = "儲存失敗：手機本機空間不足，或瀏覽器不允許儲存（例如無痕模式）";
 
-export const LIMITS = { text: 40, transport: 30, notes: 1000, items: 100, order: 300, day: 366, undatedDays: 60 };
+export const LIMITS = { text: 40, transport: 30, notes: 1000, items: 100, activities: 30, order: 300, day: 366, undatedDays: 60 };
 
 /** 純文字項目的類型（沒選地點時用來決定圖示）。順序就是表單上的顯示順序。 */
 export const ITEM_KINDS = [
@@ -108,6 +111,16 @@ function cleanOrder(list) {
   return out;
 }
 
+function cleanIds(list, max) {
+  if (!Array.isArray(list)) return [];
+  const out = [];
+  for (const id of list) {
+    if (isValidId(id) && !out.includes(id)) out.push(id);
+    if (out.length >= max) break;
+  }
+  return out;
+}
+
 function normalizePlan(raw) {
   if (!raw || typeof raw !== "object" || !isValidId(raw.id) || !isValidId(raw.tripId)) return null;
   if (!Number.isInteger(raw.day) || raw.day < 1 || raw.day > LIMITS.day) return null;
@@ -125,6 +138,7 @@ function normalizePlan(raw) {
     tripId: raw.tripId,
     day: raw.day,
     items,
+    activityIds: cleanIds(raw.activityIds, LIMITS.activities),
     order: cleanOrder(raw.order),
     createdAt: typeof raw.createdAt === "string" ? raw.createdAt : "",
     updatedAt: typeof raw.updatedAt === "string" ? raw.updatedAt : "",
@@ -152,7 +166,7 @@ function ensurePlan(all, tripId, day) {
   let plan = all.find((p) => p.tripId === tripId && p.day === day);
   if (!plan) {
     const now = new Date().toISOString();
-    plan = { id: newId("day"), tripId, day, items: [], order: [], createdAt: now, updatedAt: now };
+    plan = { id: newId("day"), tripId, day, items: [], activityIds: [], order: [], createdAt: now, updatedAt: now };
     all.push(plan);
   }
   return plan;
@@ -275,6 +289,57 @@ export const dayPlanStore = {
     return { ok: true };
   },
 
+  /**
+   * 把一個沒有日期的活動排進某一天（v0.8.2）。order 是畫面算好的「加入後這天的完整順序」。
+   * 同一天已經有了就只更新順序。
+   */
+  placeActivity(tripId, day, activityId, order) {
+    if (!isValidId(tripId) || !validDay(day) || !isValidId(activityId)) return { ok: false, errors: ["找不到這一天"] };
+    const all = loadAll();
+    const plan = ensurePlan(all, tripId, day);
+    if (!plan.activityIds.includes(activityId)) {
+      if (plan.activityIds.length >= LIMITS.activities) return { ok: false, errors: [`一天最多排 ${LIMITS.activities} 個未定日期的活動`] };
+      plan.activityIds.push(activityId);
+    }
+    plan.order = cleanOrder(order);
+    plan.updatedAt = new Date().toISOString();
+    if (!save(all)) return { ok: false, errors: [STORAGE_FAIL] };
+    return { ok: true };
+  },
+
+  /** 從某一天拿掉一個沒有日期的活動（活動本身不刪除） */
+  unplaceActivity(tripId, day, activityId) {
+    const all = loadAll();
+    const plan = all.find((p) => p.tripId === tripId && p.day === day);
+    if (!plan || !plan.activityIds.includes(activityId)) return { ok: true };
+    plan.activityIds = plan.activityIds.filter((id) => id !== activityId);
+    plan.order = plan.order.filter((r) => r !== `a:${activityId}`);
+    plan.updatedAt = new Date().toISOString();
+    if (!save(all)) return { ok: false, errors: [STORAGE_FAIL] };
+    return { ok: true };
+  },
+
+  /** 從所有天拿掉這個活動（活動填了日期、或被刪除時呼叫）；順序裡的位置也一起清掉 */
+  unplaceActivityEverywhere(tripId, activityId) {
+    const all = loadAll();
+    let changed = false;
+    for (const plan of all) {
+      if (plan.tripId !== tripId || !plan.activityIds.includes(activityId)) continue;
+      plan.activityIds = plan.activityIds.filter((id) => id !== activityId);
+      plan.order = plan.order.filter((r) => r !== `a:${activityId}`);
+      changed = true;
+    }
+    if (changed && !save(all)) return { ok: false, errors: [STORAGE_FAIL] };
+    return { ok: true };
+  },
+
+  /** 這個（沒有日期的）活動排在哪幾天 → [第幾天...]（由小到大） */
+  daysOfActivity(tripId, activityId) {
+    return this.listByTrip(tripId)
+      .filter((p) => p.activityIds.includes(activityId))
+      .map((p) => p.day);
+  },
+
   /** 儲存這天的排列順序（▲▼ 之後呼叫） */
   setOrder(tripId, day, order) {
     if (!isValidId(tripId) || !validDay(day)) return { ok: false, errors: ["找不到這一天"] };
@@ -317,16 +382,22 @@ export const dayPlanStore = {
     if (!from) return { ok: true, moved: 0 };
     const to = ensurePlan(all, tripId, toDay);
     if (to.items.length + from.items.length > LIMITS.items) return { ok: false, errors: [`一天最多 ${LIMITS.items} 個項目`] };
-    const movedRefs = from.order.filter((r) => r.startsWith("i:"));
-    // 照原本那天的順序搬過去；順序裡沒有的項目接在後面
-    const ids = [...movedRefs.map((r) => r.slice(2)), ...from.items.map((it) => it.id)];
-    const unique = [...new Set(ids)].filter((id) => from.items.some((it) => it.id === id));
-    to.items.push(...unique.map((id) => from.items.find((it) => it.id === id)));
-    to.order = cleanOrder([...(Array.isArray(baseOrder) ? baseOrder : to.order), ...unique.map((id) => `i:${id}`)]);
+    // 沒有日期的活動也一起搬（最後一天已經有的不重複）
+    const acts = from.activityIds.filter((id) => !to.activityIds.includes(id));
+    if (to.activityIds.length + acts.length > LIMITS.activities) {
+      return { ok: false, errors: [`一天最多排 ${LIMITS.activities} 個未定日期的活動`] };
+    }
+    // 照原本那天的順序搬過去；順序裡沒有的接在後面
+    const known = new Set([...from.items.map((it) => `i:${it.id}`), ...acts.map((id) => `a:${id}`)]);
+    const refs = [...from.order, ...from.items.map((it) => `i:${it.id}`), ...acts.map((id) => `a:${id}`)];
+    const moved = [...new Set(refs)].filter((r) => known.has(r));
+    to.items.push(...from.items);
+    to.activityIds.push(...acts);
+    to.order = cleanOrder([...(Array.isArray(baseOrder) ? baseOrder : to.order), ...moved]);
     to.updatedAt = new Date().toISOString();
     const next = all.filter((p) => p !== from);
     if (!save(next)) return { ok: false, errors: [STORAGE_FAIL] };
-    return { ok: true, moved: unique.length };
+    return { ok: true, moved: moved.length };
   },
 
   /** 刪除旅程時呼叫 */

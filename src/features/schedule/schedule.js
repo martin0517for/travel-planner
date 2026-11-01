@@ -50,7 +50,7 @@ function paint(container, trip, refresh) {
   const extra = outOfRangePlans(trip, info);
   const plan = dayPlanStore.get(trip.id, dayInfo.day);
   const isLastUndated = !info.dated && dayInfo.day === info.days.length && dayInfo.day > 1;
-  const canRemoveDay = isLastUndated && !(plan && plan.items.length);
+  const canRemoveDay = isLastUndated && !(plan && (plan.items.length || plan.activityIds.length));
   if (entries.length < 2) state.sorting = false;
   const sorting = state.sorting;
 
@@ -231,7 +231,7 @@ function openEntry(entry, { trip, dayInfo, goDay }) {
     case "checkout":
       return openAccommodationDetail({ stay: entry.data, onChanged });
     case "activity":
-      return openActivityDetail({ activity: entry.data, onChanged });
+      return openActivityDetail({ activity: entry.data, placedDay: entry.placed ? dayInfo.day : 0, onChanged });
   }
 }
 

@@ -28,9 +28,9 @@ export function openOutOfRange({ trip, onChanged }) {
         (p) => html`
           <div class="oor-day">
             <div class="oor-day__head">
-              <b>Day ${p.day}</b><span class="muted">${p.items.length} 個項目</span>
+              <b>Day ${p.day}</b><span class="muted">${p.items.length + p.activities.length} 個項目</span>
             </div>
-            <div class="oor-day__items">${p.items.map((it) => itemTitle(it)).join("、")}</div>
+            <div class="oor-day__items">${[...p.items.map((it) => itemTitle(it)), ...p.activities.map((a) => a.title)].join("、")}</div>
             <div class="form__actions">
               <button type="button" class="btn btn--danger" data-delete="${p.day}">刪除</button>
               <button type="button" class="btn btn--primary" data-move="${p.day}">移到 Day ${last.day}</button>

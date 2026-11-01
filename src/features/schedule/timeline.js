@@ -13,7 +13,10 @@
  *   - 沒時間的 → 最下面（入住卡之前）
  * 另外有「色帶」：有住宿的每一晚，在當天最上面顯示「入住：飯店名」（不能移動，不在清單裡）。
  *
- * 沒有日期的旅程（或日期不在旅程期間）不會有自動出現的項目。
+ * 沒有日期的旅程（或日期不在旅程期間）不會有自動出現的航班、住宿、有日期的活動。
+ *
+ * 沒有日期的活動（v0.8.2）：從行程頁加入時記在 DayPlan.activityIds，排在哪幾天就出現在哪幾天
+ * （有日期、沒日期的旅程都可以）。排在兩天以上時顯示「第 N 天／共 N 天」。
  */
 import { parseDate, daysBetween, addDays, todayStr } from "../../core/dates.js";
 import { dayPlanStore, LIMITS } from "../../data/dayPlans.js";
@@ -48,7 +51,18 @@ export function tripDays(trip) {
 export function outOfRangePlans(trip, info = tripDays(trip)) {
   if (!info.dated) return [];
   const count = info.days.length;
-  return dayPlanStore.listByTrip(trip.id).filter((p) => p.day > count && p.items.length);
+  return dayPlanStore
+    .listByTrip(trip.id)
+    .map((p) => ({ ...p, activities: placedActivities(trip.id, p) }))
+    .filter((p) => p.day > count && (p.items.length || p.activities.length));
+}
+
+/** 某天排進來的「沒有日期的活動」（已刪除、或之後填了日期的略過） */
+export function placedActivities(tripId, plan) {
+  if (!plan) return [];
+  return plan.activityIds
+    .map((id) => activityStore.get(id))
+    .filter((a) => a && a.tripId === tripId && !a.startDate);
 }
 
 /**
@@ -89,6 +103,14 @@ export function dayContent(trip, day, date) {
       if (!info) continue;
       candidates.push({ ref: `a:${a.id}`, kind: "activity", data: a, ...info });
     }
+  }
+
+  // 沒有日期的活動：排在哪幾天就出現在哪幾天；第一天顯示開始時間
+  for (const a of placedActivities(trip.id, plan)) {
+    const days = dayPlanStore.daysOfActivity(trip.id, a.id);
+    const nth = days.indexOf(day) + 1;
+    const total = days.length;
+    candidates.push({ ref: `a:${a.id}`, kind: "activity", data: a, placed: true, nth, total, time: nth === 1 ? a.startTime : "", slot: "normal" });
   }
 
   return { entries: arrange(candidates, plan ? plan.order : []), bands };
@@ -151,11 +173,30 @@ export function insertAt(list, entry) {
 
 /**
  * 加入（或從別天搬來）一個行程項目後，那一天的完整順序。
- * ref 是 "i:NEW"（新增）或 "i:<id>"（搬來）。
+ * ref 是 "i:NEW"（新增）、"i:<id>"（搬來）或 "a:<活動 id>"（排進沒有日期的活動）。
  */
 export function orderWithNewItem(trip, day, date, ref, time) {
   const { entries } = dayContent(trip, day, date);
   const list = entries.filter((e) => e.ref !== ref);
   insertAt(list, { ref, time, slot: "normal" });
   return list.map((e) => e.ref);
+}
+
+/**
+ * 「選擇已有的活動」可以選哪些（v0.8.2）：
+ *   有日期的旅程：沒有日期、或日期跟旅程期間沒有重疊的活動（選了會把開始日改成這天）
+ *   沒有日期的旅程：沒有日期、而且還沒排在這天的活動（選了會記在這天）
+ * 有日期的旅程裡，沒有日期但已經排在這天的也不列。
+ */
+export function activityChoices(trip, day, info = tripDays(trip)) {
+  const plan = dayPlanStore.get(trip.id, day);
+  const here = new Set(plan ? plan.activityIds : []);
+  const first = info.days[0];
+  const last = info.days[info.days.length - 1];
+  return activityStore.listByTrip(trip.id).filter((a) => {
+    if (!a.startDate) return !here.has(a.id);
+    if (!info.dated) return false;
+    const end = a.endDate || a.startDate;
+    return end < first.date || a.startDate > last.date;
+  });
 }

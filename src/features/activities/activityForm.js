@@ -1,8 +1,11 @@
 /**
  * activityForm.js — 新增／編輯活動（整頁表單，計畫書 9.5，2026-11-01）。
  *
- * openActivityForm({ tripId, activity, onSaved })
+ * openActivityForm({ tripId, activity, defaults, note, onSaved })
  *   activity 為 null → 新增；有值 → 編輯
+ *   defaults：新增時預先帶入的欄位（v0.8.2 從行程頁新增時帶入開始日）
+ *   note：表單最上方的提示文字（v0.8.2 從行程頁新增時說明會排在哪一天）
+ * 活動存好後有日期 → 從行程頁「排在某天」的紀錄移除（改照日期出現，v0.8.2）。
  *
  * 欄位：名稱（必填）、開始日／結束日、開始時間／結束時間、地點（多個，可用 ▲▼ 調整順序）、內容。
  * - 只去一天：結束日可以不填。結束日的日曆最早只能選到開始日；有日期時顯示「共 N 天」。
@@ -14,15 +17,16 @@ import { html, raw, render } from "../../core/html.js";
 import { icon } from "../../core/icons.js";
 import { openSheet } from "../../core/sheet.js";
 import { activityStore, LIMITS, daysOf } from "../../data/activities.js";
+import { dayPlanStore } from "../../data/dayPlans.js";
 import { placeStore, categoryLabel } from "../../data/places.js";
 import { openPlaceMultiPicker } from "../places/placeMultiPicker.js";
 
 // 所有文字欄位用同一組設定（同一種鍵盤，避免切換欄位時鍵盤高度不同而跳動）
 const TEXT_ATTRS = 'autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" type="search" enterkeyhint="done"';
 
-export function openActivityForm({ tripId, activity = null, onSaved } = {}) {
+export function openActivityForm({ tripId, activity = null, defaults = {}, note = "", onSaved } = {}) {
   const isEdit = Boolean(activity);
-  const v = activity || { title: "", startDate: "", endDate: "", startTime: "", endTime: "", placeIds: [], notes: "" };
+  const v = activity || { title: "", startDate: "", endDate: "", startTime: "", endTime: "", placeIds: [], notes: "", ...defaults };
   const theTripId = tripId || (activity && activity.tripId) || "";
   let placeIds = [...v.placeIds]; // 目前選的地點（按「儲存」才會寫入）
 
@@ -30,6 +34,7 @@ export function openActivityForm({ tripId, activity = null, onSaved } = {}) {
     title: isEdit ? "編輯活動" : "新增活動",
     body: html`
       <form class="form" novalidate>
+        ${note ? html`<p class="field__hint">${note}</p>` : ""}
         <div class="field">
           <label for="act-title">名稱</label>
           <input id="act-title" ${raw(TEXT_ATTRS)} name="actTitle" maxlength="${LIMITS.title}"
@@ -170,6 +175,8 @@ export function openActivityForm({ tripId, activity = null, onSaved } = {}) {
           errorsBox.hidden = false;
           return;
         }
+        // 有日期了：照日期出現，行程頁「排在某天」的紀錄不再需要
+        if (result.activity.startDate) dayPlanStore.unplaceActivityEverywhere(result.activity.tripId, result.activity.id);
         close();
         if (onSaved) onSaved(result.activity);
       });
