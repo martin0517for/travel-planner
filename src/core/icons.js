@@ -23,6 +23,7 @@ const PATHS = {
   navigate: '<path d="M3 11l18-8-8 18-2-8-8-2z"/>',
   globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 010 18M12 3a14 14 0 000 18"/>',
   check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  note: '<path d="M5 4h14v12l-4 4H5z"/><path d="M15 20v-4h4M8 9h8M8 13h5"/>',
   pin: '<path d="M12 21s-7-6-7-11a7 7 0 0114 0c0 5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>',
   // 地點分類
   attraction: '<path d="M3 20l5-9 4 5 3-4 6 8H3z"/><circle cx="8" cy="7" r="2"/>',

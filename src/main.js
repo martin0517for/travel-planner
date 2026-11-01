@@ -18,6 +18,7 @@ import { renderTripOverview } from "./features/trips/tripOverview.js";
 import { tripStore } from "./data/trips.js";
 import { renderPlaceList } from "./features/places/placeList.js";
 import { renderSettings } from "./features/settings/settings.js";
+import { renderTripLists } from "./features/lists/tripLists.js";
 
 applyTheme("system");
 watchSystemTheme(() => "system");
@@ -51,7 +52,7 @@ const routes = {
   "/trips/:id": tripPage("overview", "Overview", renderTripOverview),
   "/trips/:id/schedule": tripPage("schedule", "Schedule", comingSoon("行程")),
   "/trips/:id/map": tripPage("map", "Map", comingSoon("地圖")),
-  "/trips/:id/lists": tripPage("lists", "Lists", comingSoon("清單")),
+  "/trips/:id/lists": tripPage("lists", "Lists", renderTripLists),
   "/places": (container) => ({ ...renderPlaceList(container), back: lastMainPath, page: "places" }),
   "/settings": (container) => ({ ...renderSettings(container), back: lastMainPath, page: "settings" }),
 };

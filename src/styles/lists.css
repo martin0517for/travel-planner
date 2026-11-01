@@ -1,0 +1,153 @@
+/* ============================================
+   lists.css — 清單頁籤：分段切換、旅程地點清單、多選加入畫面（2026-11-01）
+   ============================================ */
+
+/* ---- 分段切換（想去的地點｜想買的東西） ---- */
+.segmented {
+  display: flex;
+  padding: 3px;
+  margin-bottom: var(--space-3);
+  border-radius: 8px;
+  background: var(--color-pressed);
+}
+.segmented__item {
+  flex: 1;
+  min-height: 36px;
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--color-ink-soft);
+}
+.segmented__item.is-active {
+  background: var(--color-paper-card);
+  color: var(--color-ink);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+}
+
+/* ---- 區塊標題：未排入／已排入／去過 ＋ 數量 ---- */
+.tp-section {
+  display: flex;
+  justify-content: space-between;
+  margin: var(--space-4) 2px var(--space-2);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  color: var(--color-ink-soft);
+}
+
+/* ---- 清單的每一列：勾選框（獨立按鈕）＋ 內容（開預覽） ---- */
+.tp-row {
+  display: flex;
+  align-items: center;
+}
+.tp-check {
+  width: var(--tap-size);
+  min-height: 60px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: var(--space-1);
+}
+.tp-check__box {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.6px solid var(--color-ink-soft);
+  border-radius: var(--radius-sm);
+}
+.tp-check.is-checked .tp-check__box {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-accent-text);
+}
+.tp-check__box .icon { width: 16px; height: 16px; stroke-width: 2.2; }
+.tp-check:active .tp-check__box { background: var(--color-pressed); }
+
+.tp-row__main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 60px;
+  padding: var(--space-3) var(--space-4) var(--space-3) var(--space-1);
+  text-align: left;
+}
+.tp-row__main:active { background: var(--color-pressed); }
+.tp-row__note {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  font-size: 0.82rem;
+  color: var(--color-ink-soft);
+}
+.tp-row__note .icon { width: 13px; height: 13px; flex-shrink: 0; }
+.tp-row__note span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tp-row__used {
+  flex-shrink: 0;
+  max-width: 40%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--color-line);
+  color: var(--color-ink-soft);
+}
+
+/* 已排入、去過：變淡（勾選框維持清楚，方便點）。去過不加刪除線（使用者決定） */
+.tp-row.is-scheduled .place-row__icon,
+.tp-row.is-scheduled .place-row__body { opacity: 0.5; }
+.tp-row.is-visited .place-row__icon,
+.tp-row.is-visited .place-row__body { opacity: 0.4; }
+
+/* ---- 多選加入畫面 ---- */
+.adder-hint { margin: 0 2px var(--space-2); }
+.adder-row { padding-left: var(--space-3); }
+.adder-check {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.6px solid var(--color-ink-soft);
+  border-radius: 50%;
+  color: transparent;
+}
+.adder-check .icon { width: 15px; height: 15px; stroke-width: 2.4; }
+.adder-check.is-on {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-accent-text);
+}
+.adder-row.is-added { cursor: default; }
+.adder-row.is-added .adder-check,
+.adder-row.is-added .place-row__icon,
+.adder-row.is-added .place-row__body { opacity: 0.45; }
+.adder-row__added {
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  color: var(--color-ink-soft);
+}
+
+/* 最下方「加入 N 個地點」：黏在畫面底部（跟著頁面捲動，捲到底時停在清單最後） */
+.adder-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  margin: var(--space-4) calc(-1 * var(--space-4)) 0;
+  padding: var(--space-3) var(--space-4) calc(var(--space-3) + var(--safe-bottom));
+  background: var(--color-paper);
+  border-top: 1px solid var(--color-line);
+}
+.adder-bar.is-hidden { visibility: hidden; }
+.adder-bar .btn:disabled { opacity: 0.4; }
+.sheet-page .sheet.sheet--no-tail { padding-bottom: 0; }
