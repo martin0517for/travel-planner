@@ -224,7 +224,7 @@ function paintResults(box, trip, items, repaint) {
     btn.addEventListener("click", () => {
       const entry = tripPlaceStore.get(btn.dataset.open);
       const place = entry && placeStore.get(entry.placeId);
-      if (place) openTripPlaceDetail({ entry, place, usedIn: scheduledIn(trip.id, place.id), onChanged: repaint });
+      if (place) openTripPlaceDetail({ entry, place, trip, usedIn: scheduledIn(trip.id, place.id), onChanged: repaint });
     })
   );
 }
