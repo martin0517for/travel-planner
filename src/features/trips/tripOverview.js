@@ -1,14 +1,21 @@
 /**
  * tripOverview.js — 旅程「總覽」頁。
- * 目前只有上方的旅程資訊與「編輯」；航班、住宿區塊會在後續步驟加入。
+ * 上方是旅程資訊與「編輯」，下面是航班區塊（2026-11-01）；住宿區塊之後加入。
+ * 航班區塊目前是簡單列表，第 4 步再做正式排版。
  */
 import { html, render } from "../../core/html.js";
 import { tripStatus, formatRange } from "../../core/dates.js";
 import { openTripForm } from "./tripForm.js";
 import { navigate } from "../../core/router.js";
+import { icon } from "../../core/icons.js";
+import { formatDateTime } from "../../core/dates.js";
+import { flightStore, directionLabel } from "../../data/flights.js";
+import { openFlightForm } from "../flights/flightForm.js";
+import { openFlightDetail, flightTitle, airportName } from "../flights/flightDetail.js";
 
 export function renderTripOverview(container, trip, refresh) {
   const status = tripStatus(trip.startDate, trip.endDate);
+  const flights = flightStore.listByTrip(trip.id);
   render(
     container,
     html`
@@ -26,8 +33,26 @@ export function renderTripOverview(container, trip, refresh) {
 
       <div class="perforation" aria-hidden="true"></div>
 
-      <p class="muted center">航班、住宿會在後續步驟加入這一頁。</p>
+      <div class="section-head">
+        <h3 class="section-head__title">航班</h3>
+        <button type="button" class="btn btn--small" data-action="add-flight">${icon("plus")}新增</button>
+      </div>
+      ${flights.length
+        ? html`<ul class="place-list">${flights.map(flightRow)}</ul>`
+        : html`<p class="muted">還沒有航班。</p>`}
+
+      <p class="muted center section-head--spaced">住宿會在後續步驟加入這一頁。</p>
     `
+  );
+
+  container.querySelector('[data-action="add-flight"]').addEventListener("click", () =>
+    openFlightForm({ tripId: trip.id, onSaved: refresh })
+  );
+  container.querySelectorAll("[data-flight]").forEach((btn) =>
+    btn.addEventListener("click", () => {
+      const flight = flights.find((f) => f.id === btn.dataset.flight);
+      if (flight) openFlightDetail({ flight, onChanged: refresh });
+    })
   );
 
   container.querySelector('[data-action="edit"]').addEventListener("click", () =>
@@ -37,6 +62,24 @@ export function renderTripOverview(container, trip, refresh) {
       onDeleted: () => navigate("/trips"),
     })
   );
+}
+
+function flightRow(f) {
+  const route = [airportName(f.departurePlaceId), airportName(f.arrivalPlaceId)].filter(Boolean).join(" → ");
+  const time = formatDateTime(f.departureTime);
+  return html`
+    <li>
+      <button type="button" class="place-row" data-flight="${f.id}">
+        <span class="place-row__icon cat--airport">${icon("plane")}</span>
+        <span class="place-row__body">
+          <span class="place-row__name">${flightTitle(f)}</span>
+          ${route ? html`<span class="place-row__sub">${route}</span>` : ""}
+          ${time ? html`<span class="place-row__sub mono">${time}</span>` : ""}
+        </span>
+        <span class="badge">${directionLabel(f.direction)}</span>
+      </button>
+    </li>
+  `;
 }
 
 function statusText(status) {

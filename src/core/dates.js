@@ -47,6 +47,27 @@ export function tripStatus(startDate, endDate) {
   return { kind: "ongoing", day: daysBetween(start, now) + 1, total: daysBetween(start, end) + 1 };
 }
 
+/**
+ * 日期＋時間（<input type="datetime-local"> 的格式）："YYYY-MM-DDTHH:mm"。
+ * 這是「當地時間」，不帶時區，App 不做換算。iPhone 有時會多帶秒數，也接受。
+ */
+export function isValidDateTime(str) {
+  if (typeof str !== "string") return false;
+  const m = /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})(:\d{2})?$/.exec(str);
+  if (!m || !isValidDate(m[1])) return false;
+  return Number(m[2]) <= 23 && Number(m[3]) <= 59;
+}
+
+const WEEKDAYS = ["日", "一", "二", "三", "四", "五", "六"];
+
+/** 顯示用："2027-03-25T08:30" → "03-25（四）08:30"；withYear 為 true 時前面加年份 */
+export function formatDateTime(str, withYear = false) {
+  if (!isValidDateTime(str)) return "";
+  const date = parseDate(str.slice(0, 10));
+  const day = withYear ? str.slice(0, 10) : str.slice(5, 10);
+  return `${day}（${WEEKDAYS[date.getDay()]}）${str.slice(11, 16)}`;
+}
+
 /** 顯示用："2027-03-25 → 03-30"（同年時省略結束日的年份） */
 export function formatRange(startDate, endDate) {
   if (!startDate) return "日期未定";
