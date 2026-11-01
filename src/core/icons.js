@@ -31,6 +31,11 @@ const PATHS = {
   shopping: '<path d="M6 3L4 7v13a1 1 0 001 1h14a1 1 0 001-1V7l-2-4z"/><path d="M4 7h16M16 11a4 4 0 01-8 0"/>',
   hotel: '<path d="M3 19V6M3 15h18v4M21 15v-3a3 3 0 00-3-3h-7v6"/><circle cx="7" cy="11.5" r="2"/>',
   transport: '<rect x="5" y="3" width="14" height="13" rx="3"/><path d="M5 10h14M9 21l-2-3M15 21l2-3"/><circle cx="9" cy="13" r=".8"/><circle cx="15" cy="13" r=".8"/>',
+  // 活動（9.5，2026-11-01 使用者選票券）
+  ticket: '<path d="M4 7a1 1 0 011-1h14a1 1 0 011 1v3a2 2 0 000 4v3a1 1 0 01-1 1H5a1 1 0 01-1-1v-3a2 2 0 000-4z"/><path d="M14 6v2M14 11v2M14 16v2"/>',
+  up: '<path d="M6 15l6-6 6 6"/>',
+  down: '<path d="M6 9l6 6 6-6"/>',
+  remove: '<path d="M6 6l12 12M18 6L6 18"/>',
   airport: '<path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 00-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z"/>',
 };
 

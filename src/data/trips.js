@@ -20,6 +20,7 @@ import { readCollection, writeCollection, newId, isValidId } from "../core/stora
 import { isValidDate, parseDate } from "../core/dates.js";
 import { flightStore } from "./flights.js";
 import { accommodationStore } from "./accommodations.js";
+import { activityStore } from "./activities.js";
 import { tripPlaceStore } from "./tripPlaces.js";
 
 const COLLECTION = "trips";
@@ -106,9 +107,10 @@ export const tripStore = {
     const next = all.filter((t) => t.id !== id);
     if (next.length === all.length) return { ok: false, errors: ["找不到這趟旅程"] };
     if (!writeCollection(COLLECTION, next)) return { ok: false, errors: [STORAGE_FAIL] };
-    // 一起刪掉屬於這趟旅程的資料（航班、住宿、旅程地點清單；之後還有行程）
+    // 一起刪掉屬於這趟旅程的資料（航班、住宿、活動、旅程地點清單；之後還有行程）
     flightStore.removeByTrip(id);
     accommodationStore.removeByTrip(id);
+    activityStore.removeByTrip(id);
     tripPlaceStore.removeByTrip(id);
     return { ok: true };
   },

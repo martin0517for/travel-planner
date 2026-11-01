@@ -1,7 +1,7 @@
 /**
  * tripOverview.js — 旅程「總覽」頁。
- * 上方是旅程資訊與「編輯」，下面是航班、住宿區塊（2026-11-01）。
- * 兩個區塊用「日期時間軸」列表（方案 B）：左邊日期、中間圖示、右邊名稱與時間。
+ * 上方是旅程資訊與「編輯」，下面是航班、住宿、活動區塊（2026-11-01；活動是 9.5）。
+ * 三個區塊用同一種「日期時間軸」列表（方案 B）：左邊日期、中間圖示、右邊名稱與時間。
  */
 import { html, render } from "../../core/html.js";
 import { tripStatus, formatRange, parseDate, formatDateShort } from "../../core/dates.js";
@@ -15,11 +15,15 @@ import { openFlightDetail, flightTitle, airportName } from "../flights/flightDet
 import { accommodationStore } from "../../data/accommodations.js";
 import { openAccommodationForm } from "../accommodations/accommodationForm.js";
 import { openAccommodationDetail, stayTitle, nightsText } from "../accommodations/accommodationDetail.js";
+import { activityStore } from "../../data/activities.js";
+import { openActivityForm } from "../activities/activityForm.js";
+import { openActivityDetail, activityPlacesShort, activityMeta } from "../activities/activityDetail.js";
 
 export function renderTripOverview(container, trip, refresh) {
   const status = tripStatus(trip.startDate, trip.endDate);
   const flights = flightStore.listByTrip(trip.id);
   const stays = accommodationStore.listByTrip(trip.id);
+  const activities = activityStore.listByTrip(trip.id);
   render(
     container,
     html`
@@ -52,6 +56,14 @@ export function renderTripOverview(container, trip, refresh) {
       ${stays.length
         ? html`<ul class="tl">${stays.map(stayRow)}</ul>`
         : html`<p class="muted">還沒有住宿。</p>`}
+
+      <div class="section-head section-head--spaced">
+        <h3 class="section-head__title">活動</h3>
+        <button type="button" class="btn btn--small" data-action="add-activity">${icon("plus")}新增</button>
+      </div>
+      ${activities.length
+        ? html`<ul class="tl">${activities.map(activityRow)}</ul>`
+        : html`<p class="muted">還沒有活動。例如：環球影城、一日遊。</p>`}
     `
   );
 
@@ -72,6 +84,16 @@ export function renderTripOverview(container, trip, refresh) {
     btn.addEventListener("click", () => {
       const stay = stays.find((s) => s.id === btn.dataset.stay);
       if (stay) openAccommodationDetail({ stay, onChanged: refresh });
+    })
+  );
+
+  container.querySelector('[data-action="add-activity"]').addEventListener("click", () =>
+    openActivityForm({ tripId: trip.id, onSaved: refresh })
+  );
+  container.querySelectorAll("[data-activity]").forEach((btn) =>
+    btn.addEventListener("click", () => {
+      const activity = activities.find((a) => a.id === btn.dataset.activity);
+      if (activity) openActivityDetail({ activity, onChanged: refresh });
     })
   );
 
@@ -128,6 +150,25 @@ function stayRow(s) {
         <span class="tl__icon cat--hotel">${icon("hotel")}</span>
         <span class="tl__body">
           <span class="tl__title"><span class="tl__name">${stayTitle(s)}</span></span>
+          ${sub ? html`<span class="tl__sub">${sub}</span>` : ""}
+          ${meta ? html`<span class="tl__meta">${meta}</span>` : ""}
+        </span>
+      </button>
+    </li>
+  `;
+}
+
+/** 活動列（9.5）：第 2 行前兩個地點「+N」；第 3 行一段日期「→ 結束日・共 N 天」或一天的時間 */
+function activityRow(a) {
+  const sub = activityPlacesShort(a);
+  const meta = activityMeta(a);
+  return html`
+    <li>
+      <button type="button" class="tl__row" data-activity="${a.id}">
+        ${dateCol(a.startDate)}
+        <span class="tl__icon cat--attraction">${icon("ticket")}</span>
+        <span class="tl__body">
+          <span class="tl__title"><span class="tl__name">${a.title}</span></span>
           ${sub ? html`<span class="tl__sub">${sub}</span>` : ""}
           ${meta ? html`<span class="tl__meta">${meta}</span>` : ""}
         </span>

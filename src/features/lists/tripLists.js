@@ -31,7 +31,7 @@ const TABS = [
 
 /**
  * 某個地點在這趟旅程用在哪裡 → [{ short, full }]，例如 [{ short: "去程航班", full: "去程航班 BR198" }]。
- * 空陣列代表「未排入」。目前看航班、住宿（data/tripPlaceUsage.js），之後加上活動、行程。
+ * 空陣列代表「未排入」。目前看航班、住宿、活動（data/tripPlaceUsage.js），之後加上行程。
  */
 const scheduledIn = tripUsages;
 
