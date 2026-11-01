@@ -2,6 +2,8 @@
  * accommodationDetail.js — 住宿預覽（唯讀，底部滑出面板）。
  * 點總覽頁上的住宿會先開這個；有飯店時上方有「導航」按鈕（開飯店的 Google 地圖），
  * 底部是「刪除｜編輯」（關閉用右上角的 ×）。
+ * v0.8.3：多一行「行程」；被移除過 →「加入行程」，沒有日期 →「排進行程」。
+ *         從行程頁打開（scheduleDay＝第幾天）時，底部改成「從行程移除｜編輯」，不能刪除。
  */
 import { html } from "../../core/html.js";
 import { icon } from "../../core/icons.js";
@@ -12,6 +14,7 @@ import { formatDateShort } from "../../core/dates.js";
 import { accommodationStore, nightsOf } from "../../data/accommodations.js";
 import { placeStore } from "../../data/places.js";
 import { openAccommodationForm } from "./accommodationForm.js";
+import { scheduleBlock, wireScheduleBlock, scheduleActions, wireScheduleActions, afterDeleted } from "../schedule/scheduleLinks.js";
 
 /** 住宿的顯示名稱：飯店名稱 →（地點已刪除）→「住宿」 */
 export function stayTitle(stay) {
@@ -30,7 +33,7 @@ export function nightsText(stay) {
   return n === null ? "" : n === 0 ? "不過夜" : `${n} 晚`;
 }
 
-export function openAccommodationDetail({ stay, onChanged }) {
+export function openAccommodationDetail({ stay, scheduleDay = 0, onChanged }) {
   const place = stay.placeId ? placeStore.get(stay.placeId) : null;
   const nav = place ? navigationUrl(place) : null;
   const nights = nightsText(stay);
@@ -55,20 +58,26 @@ export function openAccommodationDetail({ stay, onChanged }) {
       ${place && place.address ? detailRow("地址", place.address) : ""}
       ${stay.bookingRef ? detailRow("訂房代號", stay.bookingRef, true) : ""}
       ${stay.notes ? detailRow("備註", linkify(stay.notes), false, true) : ""}
+      ${scheduleBlock({ kind: "stay", obj: stay, scheduleDay })}
 
-      <div class="form__actions form__actions--spaced">
-        <button type="button" class="btn btn--danger" data-action="delete">刪除</button>
-        <button type="button" class="btn btn--primary" data-action="edit">編輯</button>
-      </div>
+      ${scheduleDay
+        ? scheduleActions(scheduleDay)
+        : html`<div class="form__actions form__actions--spaced">
+            <button type="button" class="btn btn--danger" data-action="delete">刪除</button>
+            <button type="button" class="btn btn--primary" data-action="edit">編輯</button>
+          </div>`}
     `,
     onMount(panel, close) {
-      panel.querySelector('[data-action="delete"]').addEventListener("click", () => {
+      wireScheduleBlock(panel, { kind: "stay", obj: stay, close, onChanged });
+      wireScheduleActions(panel, { kind: "stay", obj: stay, day: scheduleDay, close, onChanged });
+      panel.querySelector('[data-action="delete"]')?.addEventListener("click", () => {
         if (!window.confirm(`確定要刪除住宿「${stayTitle(stay)}」嗎？這個動作無法復原。`)) return;
         const result = accommodationStore.remove(stay.id);
         if (!result.ok) {
           window.alert(result.errors.join("\n"));
           return;
         }
+        afterDeleted("stay", stay);
         close();
         if (onChanged) onChanged();
       });

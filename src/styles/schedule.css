@@ -184,9 +184,7 @@
 .oor-day__head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: var(--space-1); }
 .oor-day__items { font-size: 0.85rem; margin-bottom: var(--space-3); overflow-wrap: anywhere; }
 
-/* ---- 新增行程：「活動」分頁（v0.8.2） ---- */
-.act-new { width: 100%; margin-bottom: var(--space-4); }
-.act-choose__title { margin-bottom: var(--space-2); }
+/* ---- 選擇列表（總覽項目、排進行程選第幾天） ---- */
 .act-choose {
   list-style: none;
   margin: 0 0 var(--space-2);
@@ -207,3 +205,24 @@
 }
 .act-choose__row:active { background: var(--color-pressed); }
 .act-choose__empty { margin: var(--space-2) 0; }
+
+/* ---- 預覽裡的「加入行程／排進行程」、行程頁打開時「從行程移除」的說明（v0.8.3） ---- */
+.sched-btn { margin-top: var(--space-3); gap: var(--space-1, 4px); }
+.sched-btn .icon { width: 16px; height: 16px; }
+.sched-hint { margin-top: var(--space-1, 4px); }
+.form__actions + .sched-hint { margin-top: var(--space-2); }
+.act-choose__row.is-here { opacity: 0.45; }
+.act-choose__row .badge { flex-shrink: 0; }
+
+/* ---- 新增行程：「總覽項目」分頁（v0.8.3） ---- */
+.ov-sec {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: var(--space-4) 2px var(--space-2);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  color: var(--color-ink-soft);
+}
+.ov-add { width: 100%; margin-bottom: var(--space-2); }

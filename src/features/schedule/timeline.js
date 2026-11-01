@@ -15,8 +15,9 @@
  *
  * 沒有日期的旅程（或日期不在旅程期間）不會有自動出現的航班、住宿、有日期的活動。
  *
- * 沒有日期的活動（v0.8.2）：從行程頁加入時記在 DayPlan.activityIds，排在哪幾天就出現在哪幾天
- * （有日期、沒日期的旅程都可以）。排在兩天以上時顯示「第 N 天／共 N 天」。
+ * 沒有日期的航班、住宿、活動（v0.8.2 活動、v0.8.3 航班與住宿）：從行程頁加入時記在 DayPlan.placed，
+ * 排在哪幾天就出現在哪幾天（有日期、沒日期的旅程都可以）。活動、住宿排在兩天以上時顯示「第 N 天／共 N 天」。
+ * 「從行程移除」的自動項目（v0.8.3）記在 DayPlan.hidden，那天不顯示（色帶照常顯示）。
  */
 import { parseDate, daysBetween, addDays, todayStr } from "../../core/dates.js";
 import { dayPlanStore, LIMITS } from "../../data/dayPlans.js";
@@ -53,16 +54,44 @@ export function outOfRangePlans(trip, info = tripDays(trip)) {
   const count = info.days.length;
   return dayPlanStore
     .listByTrip(trip.id)
-    .map((p) => ({ ...p, activities: placedActivities(trip.id, p) }))
-    .filter((p) => p.day > count && (p.items.length || p.activities.length));
+    .map((p) => ({ ...p, placedEntries: placedEntries(trip.id, p) }))
+    .filter((p) => p.day > count && (p.items.length || p.placedEntries.length));
 }
 
-/** 某天排進來的「沒有日期的活動」（已刪除、或之後填了日期的略過） */
-export function placedActivities(tripId, plan) {
+/** 航班、住宿、活動有沒有日期（沒有日期的才能「排進」某天） */
+export function isDated(kind, obj) {
+  if (kind === "flight") return Boolean(obj.departureTime);
+  if (kind === "stay") return Boolean(obj.checkInDate || obj.checkOutDate);
+  return Boolean(obj.startDate);
+}
+
+const PLACED_KIND = { f: "flight", s: "stay", a: "activity" };
+const STORE_OF = { flight: flightStore, stay: accommodationStore, activity: activityStore };
+
+/** 「排進來」用的引用：航班 "f:"、住宿 "s:"、活動 "a:" */
+export function placedRef(kind, obj) {
+  return `${{ flight: "f", stay: "s", activity: "a" }[kind]}:${obj.id}`;
+}
+
+/**
+ * 某天排進來的（沒有日期的）航班、住宿、活動 → Timeline 的項目。
+ * 已刪除、不是這趟、或之後填了日期的略過。
+ */
+export function placedEntries(tripId, plan) {
   if (!plan) return [];
-  return plan.activityIds
-    .map((id) => activityStore.get(id))
-    .filter((a) => a && a.tripId === tripId && !a.startDate);
+  const out = [];
+  for (const ref of plan.placed) {
+    const kind = PLACED_KIND[ref.split(":")[0]];
+    const obj = STORE_OF[kind].get(ref.slice(ref.indexOf(":") + 1));
+    if (!obj || obj.tripId !== tripId || isDated(kind, obj)) continue;
+    const days = dayPlanStore.daysPlaced(tripId, ref);
+    const nth = days.indexOf(plan.day) + 1;
+    const total = days.length;
+    if (kind === "flight") out.push({ ref, kind, data: obj, placed: true, time: "", slot: "normal" });
+    else if (kind === "stay") out.push({ ref, kind, data: obj, placed: true, time: "", slot: "normal", nth, total });
+    else out.push({ ref, kind, data: obj, placed: true, nth, total, time: nth === 1 ? obj.startTime : "", slot: "normal" });
+  }
+  return out;
 }
 
 /**
@@ -75,6 +104,7 @@ export function placedActivities(tripId, plan) {
  */
 export function dayContent(trip, day, date) {
   const plan = dayPlanStore.get(trip.id, day);
+  const hidden = new Set(plan ? plan.hidden : []);
   const candidates = [];
 
   for (const item of plan ? plan.items : []) {
@@ -84,14 +114,14 @@ export function dayContent(trip, day, date) {
   const bands = [];
   if (date) {
     for (const f of flightStore.listByTrip(trip.id)) {
-      if (f.departureTime.slice(0, 10) !== date) continue;
+      if (f.departureTime.slice(0, 10) !== date || hidden.has(`f:${f.id}`)) continue;
       candidates.push({ ref: `f:${f.id}`, kind: "flight", data: f, time: f.departureTime.slice(11, 16), slot: "normal" });
     }
     for (const s of accommodationStore.listByTrip(trip.id)) {
-      if (s.checkOutDate === date) {
+      if (s.checkOutDate === date && !hidden.has(`so:${s.id}`)) {
         candidates.push({ ref: `so:${s.id}`, kind: "checkout", data: s, time: s.checkOutTime, slot: "top" });
       }
-      if (s.checkInDate === date) {
+      if (s.checkInDate === date && !hidden.has(`si:${s.id}`)) {
         candidates.push({ ref: `si:${s.id}`, kind: "checkin", data: s, time: s.checkInTime, slot: "bottom" });
       }
       // 色帶：這晚住在這裡（入住日 ≤ 今天 < 退房日；沒填退房日時只有入住那晚）
@@ -100,18 +130,13 @@ export function dayContent(trip, day, date) {
     }
     for (const a of activityStore.listByTrip(trip.id)) {
       const info = activityOnDate(a, date);
-      if (!info) continue;
+      if (!info || hidden.has(`a:${a.id}`)) continue;
       candidates.push({ ref: `a:${a.id}`, kind: "activity", data: a, ...info });
     }
   }
 
-  // 沒有日期的活動：排在哪幾天就出現在哪幾天；第一天顯示開始時間
-  for (const a of placedActivities(trip.id, plan)) {
-    const days = dayPlanStore.daysOfActivity(trip.id, a.id);
-    const nth = days.indexOf(day) + 1;
-    const total = days.length;
-    candidates.push({ ref: `a:${a.id}`, kind: "activity", data: a, placed: true, nth, total, time: nth === 1 ? a.startTime : "", slot: "normal" });
-  }
+  // 沒有日期、排進這天的航班、住宿、活動（活動第一天顯示開始時間）
+  candidates.push(...placedEntries(trip.id, plan));
 
   return { entries: arrange(candidates, plan ? plan.order : []), bands };
 }
@@ -173,7 +198,7 @@ export function insertAt(list, entry) {
 
 /**
  * 加入（或從別天搬來）一個行程項目後，那一天的完整順序。
- * ref 是 "i:NEW"（新增）、"i:<id>"（搬來）或 "a:<活動 id>"（排進沒有日期的活動）。
+ * ref 是 "i:NEW"（新增）、"i:<id>"（搬來），或排進沒有日期的航班 "f:"、住宿 "s:"、活動 "a:"。
  */
 export function orderWithNewItem(trip, day, date, ref, time) {
   const { entries } = dayContent(trip, day, date);
@@ -182,21 +207,3 @@ export function orderWithNewItem(trip, day, date, ref, time) {
   return list.map((e) => e.ref);
 }
 
-/**
- * 「選擇已有的活動」可以選哪些（v0.8.2）：
- *   有日期的旅程：沒有日期、或日期跟旅程期間沒有重疊的活動（選了會把開始日改成這天）
- *   沒有日期的旅程：沒有日期、而且還沒排在這天的活動（選了會記在這天）
- * 有日期的旅程裡，沒有日期但已經排在這天的也不列。
- */
-export function activityChoices(trip, day, info = tripDays(trip)) {
-  const plan = dayPlanStore.get(trip.id, day);
-  const here = new Set(plan ? plan.activityIds : []);
-  const first = info.days[0];
-  const last = info.days[info.days.length - 1];
-  return activityStore.listByTrip(trip.id).filter((a) => {
-    if (!a.startDate) return !here.has(a.id);
-    if (!info.dated) return false;
-    const end = a.endDate || a.startDate;
-    return end < first.date || a.startDate > last.date;
-  });
-}

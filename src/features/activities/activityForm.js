@@ -16,8 +16,9 @@
 import { html, raw, render } from "../../core/html.js";
 import { icon } from "../../core/icons.js";
 import { openSheet } from "../../core/sheet.js";
+import { clearLabel, wireClearButtons } from "../../core/fieldClear.js";
 import { activityStore, LIMITS, daysOf } from "../../data/activities.js";
-import { dayPlanStore } from "../../data/dayPlans.js";
+import { afterSaved } from "../schedule/scheduleLinks.js";
 import { placeStore, categoryLabel } from "../../data/places.js";
 import { openPlaceMultiPicker } from "../places/placeMultiPicker.js";
 
@@ -43,11 +44,11 @@ export function openActivityForm({ tripId, activity = null, defaults = {}, note 
 
         <div class="field-row">
           <div class="field">
-            <label for="act-start-date">開始日</label>
+            ${clearLabel("act-start-date", "開始日")}
             <input id="act-start-date" name="startDate" type="date" value="${v.startDate}" />
           </div>
           <div class="field">
-            <label for="act-end-date">結束日</label>
+            ${clearLabel("act-end-date", "結束日")}
             <input id="act-end-date" name="endDate" type="date" value="${v.endDate}" />
           </div>
         </div>
@@ -55,11 +56,11 @@ export function openActivityForm({ tripId, activity = null, defaults = {}, note 
 
         <div class="field-row">
           <div class="field">
-            <label for="act-start-time">開始時間</label>
+            ${clearLabel("act-start-time", "開始時間")}
             <input id="act-start-time" name="startTime" type="time" value="${v.startTime}" />
           </div>
           <div class="field">
-            <label for="act-end-time">結束時間</label>
+            ${clearLabel("act-end-time", "結束時間")}
             <input id="act-end-time" name="endTime" type="time" value="${v.endTime}" />
           </div>
         </div>
@@ -84,6 +85,7 @@ export function openActivityForm({ tripId, activity = null, defaults = {}, note 
     `,
     onMount(panel, close) {
       const form = panel.querySelector("form");
+      wireClearButtons(form); // 日期、時間欄位的「清除」（v0.8.3）
       const errorsBox = panel.querySelector(".form__errors");
       const startDate = form.elements.startDate;
       const endDate = form.elements.endDate;
@@ -176,7 +178,7 @@ export function openActivityForm({ tripId, activity = null, defaults = {}, note 
           return;
         }
         // 有日期了：照日期出現，行程頁「排在某天」的紀錄不再需要
-        if (result.activity.startDate) dayPlanStore.unplaceActivityEverywhere(result.activity.tripId, result.activity.id);
+        afterSaved("activity", result.activity);
         close();
         if (onSaved) onSaved(result.activity);
       });

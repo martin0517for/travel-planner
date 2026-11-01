@@ -268,3 +268,22 @@ body.has-page-sheet #app { display: none; }
   letter-spacing: 0.06em;
   color: var(--color-ink-soft);
 }
+
+/* ---- 日期、時間欄位標題右邊的「清除」（v0.8.3，core/fieldClear.js） ---- */
+.field__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+  min-height: 20px;
+}
+.field__head label { margin-bottom: 0; }
+.field__clear {
+  flex-shrink: 0;
+  margin: -12px -4px -12px 0;   /* 點擊範圍加大，但不撐高標題列 */
+  padding: 12px 4px;
+  font-size: 0.82rem;
+  color: var(--color-link);
+}
+.field__clear[hidden] { display: none; }

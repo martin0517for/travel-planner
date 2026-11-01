@@ -1,8 +1,10 @@
 /**
  * accommodationForm.js — 新增／編輯住宿（整頁表單）。
  *
- * openAccommodationForm({ tripId, stay, onSaved })
+ * openAccommodationForm({ tripId, stay, defaults, note, onSaved })
  *   stay 為 null → 新增；有值 → 編輯
+ *   defaults／note：從行程頁新增時預先帶入的欄位（入住日）、表單最上方的說明（v0.8.3）
+ * 存好後有日期 → 清掉行程頁「排進來」的紀錄（改照日期出現）。
  *
  * 欄位全部可以空白，但至少要填一項。
  * 飯店：按下去開選地點畫面（預先篩選「住宿」），找不到可以直接新增。
@@ -11,17 +13,19 @@
  */
 import { html, raw, render } from "../../core/html.js";
 import { openSheet } from "../../core/sheet.js";
+import { clearLabel, wireClearButtons } from "../../core/fieldClear.js";
 import { accommodationStore, PLATFORM_PICKS, LIMITS, nightsOf } from "../../data/accommodations.js";
 import { mountPlaceField } from "../places/placePicker.js";
+import { afterSaved } from "../schedule/scheduleLinks.js";
 
 // 所有文字欄位用同一組設定（同一種鍵盤，避免切換欄位時鍵盤高度不同而跳動）
 const TEXT_ATTRS = 'autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" type="search" enterkeyhint="done"';
 
-export function openAccommodationForm({ tripId, stay = null, onSaved } = {}) {
+export function openAccommodationForm({ tripId, stay = null, defaults = {}, note = "", onSaved } = {}) {
   const isEdit = Boolean(stay);
   const v = stay || {
     placeId: "", checkInDate: "", checkInTime: "", checkOutDate: "", checkOutTime: "",
-    platform: "", bookingRef: "", notes: "",
+    platform: "", bookingRef: "", notes: "", ...defaults,
   };
   let placeId = v.placeId; // 目前選的飯店（按「儲存」才會寫入）
 
@@ -29,25 +33,26 @@ export function openAccommodationForm({ tripId, stay = null, onSaved } = {}) {
     title: isEdit ? "編輯住宿" : "新增住宿",
     body: html`
       <form class="form" novalidate>
+        ${note ? html`<p class="field__hint">${note}</p>` : ""}
         <div class="field" data-hotel></div>
 
         <div class="field-row">
           <div class="field">
-            <label for="st-in-date">入住日</label>
+            ${clearLabel("st-in-date", "入住日")}
             <input id="st-in-date" name="checkInDate" type="date" value="${v.checkInDate}" />
           </div>
           <div class="field">
-            <label for="st-in-time">入住時間</label>
+            ${clearLabel("st-in-time", "入住時間")}
             <input id="st-in-time" name="checkInTime" type="time" value="${v.checkInTime}" />
           </div>
         </div>
         <div class="field-row">
           <div class="field">
-            <label for="st-out-date">退房日</label>
+            ${clearLabel("st-out-date", "退房日")}
             <input id="st-out-date" name="checkOutDate" type="date" value="${v.checkOutDate}" />
           </div>
           <div class="field">
-            <label for="st-out-time">退房時間</label>
+            ${clearLabel("st-out-time", "退房時間")}
             <input id="st-out-time" name="checkOutTime" type="time" value="${v.checkOutTime}" />
           </div>
         </div>
@@ -85,6 +90,7 @@ export function openAccommodationForm({ tripId, stay = null, onSaved } = {}) {
     `,
     onMount(panel, close) {
       const form = panel.querySelector("form");
+      wireClearButtons(form); // 日期、時間欄位的「清除」（v0.8.3）
       const errorsBox = panel.querySelector(".form__errors");
       const inDate = form.elements.checkInDate;
       const outDate = form.elements.checkOutDate;
@@ -140,6 +146,7 @@ export function openAccommodationForm({ tripId, stay = null, onSaved } = {}) {
           errorsBox.hidden = false;
           return;
         }
+        afterSaved("stay", result.stay);
         close();
         if (onSaved) onSaved(result.stay);
       });

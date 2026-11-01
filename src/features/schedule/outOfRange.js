@@ -12,6 +12,15 @@ import { openSheet } from "../../core/sheet.js";
 import { dayPlanStore } from "../../data/dayPlans.js";
 import { tripDays, outOfRangePlans, dayContent } from "./timeline.js";
 import { itemTitle } from "./itemDetail.js";
+import { flightTitle } from "../flights/flightDetail.js";
+import { stayTitle } from "../accommodations/accommodationDetail.js";
+
+/** 排進來的航班、住宿、活動的名稱 */
+function placedTitle(e) {
+  if (e.kind === "flight") return flightTitle(e.data);
+  if (e.kind === "stay") return `住宿：${stayTitle(e.data)}`;
+  return e.data.title;
+}
 import { dayLabel } from "./itemForm.js";
 
 export function openOutOfRange({ trip, onChanged }) {
@@ -28,9 +37,9 @@ export function openOutOfRange({ trip, onChanged }) {
         (p) => html`
           <div class="oor-day">
             <div class="oor-day__head">
-              <b>Day ${p.day}</b><span class="muted">${p.items.length + p.activities.length} 個項目</span>
+              <b>Day ${p.day}</b><span class="muted">${p.items.length + p.placedEntries.length} 個項目</span>
             </div>
-            <div class="oor-day__items">${[...p.items.map((it) => itemTitle(it)), ...p.activities.map((a) => a.title)].join("、")}</div>
+            <div class="oor-day__items">${[...p.items.map((it) => itemTitle(it)), ...p.placedEntries.map(placedTitle)].join("、")}</div>
             <div class="form__actions">
               <button type="button" class="btn btn--danger" data-delete="${p.day}">刪除</button>
               <button type="button" class="btn btn--primary" data-move="${p.day}">移到 Day ${last.day}</button>

@@ -1,6 +1,8 @@
 /**
  * flightDetail.js — 航班預覽（唯讀，底部滑出面板）。
  * 點總覽頁上的航班會先開這個；底部是「刪除｜編輯」（關閉用右上角的 ×）。
+ * v0.8.3：多一行「行程」（在哪一天）；被移除過 →「加入行程」，沒有日期 →「排進行程」。
+ *         從行程頁打開（scheduleDay＝第幾天）時，底部改成「從行程移除｜編輯」，不能刪除。
  */
 import { html } from "../../core/html.js";
 import { openSheet } from "../../core/sheet.js";
@@ -9,6 +11,7 @@ import { formatDateTime } from "../../core/dates.js";
 import { flightStore, directionLabel } from "../../data/flights.js";
 import { placeStore } from "../../data/places.js";
 import { openFlightForm } from "./flightForm.js";
+import { scheduleBlock, wireScheduleBlock, scheduleActions, wireScheduleActions, afterDeleted } from "../schedule/scheduleLinks.js";
 
 /** 航班的顯示名稱：航班號碼 → 航空公司 → 「航班」 */
 export function flightTitle(f) {
@@ -22,7 +25,7 @@ export function airportName(placeId) {
   return place ? place.name : "（地點已刪除）";
 }
 
-export function openFlightDetail({ flight, onChanged }) {
+export function openFlightDetail({ flight, scheduleDay = 0, onChanged }) {
   const dep = airportName(flight.departurePlaceId);
   const arr = airportName(flight.arrivalPlaceId);
 
@@ -39,20 +42,26 @@ export function openFlightDetail({ flight, onChanged }) {
       ${flight.bookingRef ? detailRow("訂位代號", flight.bookingRef, false, true) : ""}
       ${flight.seat ? detailRow("座位", flight.seat, false, true) : ""}
       ${flight.notes ? detailRow("備註", linkify(flight.notes)) : ""}
+      ${scheduleBlock({ kind: "flight", obj: flight, scheduleDay })}
 
-      <div class="form__actions form__actions--spaced">
-        <button type="button" class="btn btn--danger" data-action="delete">刪除</button>
-        <button type="button" class="btn btn--primary" data-action="edit">編輯</button>
-      </div>
+      ${scheduleDay
+        ? scheduleActions(scheduleDay)
+        : html`<div class="form__actions form__actions--spaced">
+            <button type="button" class="btn btn--danger" data-action="delete">刪除</button>
+            <button type="button" class="btn btn--primary" data-action="edit">編輯</button>
+          </div>`}
     `,
     onMount(panel, close) {
-      panel.querySelector('[data-action="delete"]').addEventListener("click", () => {
+      wireScheduleBlock(panel, { kind: "flight", obj: flight, close, onChanged });
+      wireScheduleActions(panel, { kind: "flight", obj: flight, day: scheduleDay, close, onChanged });
+      panel.querySelector('[data-action="delete"]')?.addEventListener("click", () => {
         if (!window.confirm(`確定要刪除航班「${flightTitle(flight)}」嗎？這個動作無法復原。`)) return;
         const result = flightStore.remove(flight.id);
         if (!result.ok) {
           window.alert(result.errors.join("\n"));
           return;
         }
+        afterDeleted("flight", flight);
         close();
         if (onChanged) onChanged();
       });

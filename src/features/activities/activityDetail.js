@@ -3,8 +3,8 @@
  * 點總覽頁上的活動會先開這個。
  * 版面：天數徽章 → 日期、時間 → 地點列表（照活動裡排的順序，每個右邊有「導航」）→ 內容
  *       → 底部「刪除｜編輯」（關閉用右上角的 ×）。
- * v0.8.2：沒有日期的活動顯示「排在行程：Day 2、Day 4」；從行程頁打開、而且是排在這天的，
- *         多一個「從這天移除」（placedDay＝第幾天；活動本身不刪除）。
+ * v0.8.3：多一行「行程」；被移除過 →「加入行程」，沒有日期 →「排進行程」。
+ *         從行程頁打開（scheduleDay＝第幾天）時，底部改成「從行程移除｜編輯」，不能刪除。
  */
 import { html } from "../../core/html.js";
 import { icon } from "../../core/icons.js";
@@ -13,7 +13,7 @@ import { linkify } from "../../core/linkify.js";
 import { navigationUrl } from "../../core/geo.js";
 import { formatDateShort } from "../../core/dates.js";
 import { activityStore, daysOf } from "../../data/activities.js";
-import { dayPlanStore } from "../../data/dayPlans.js";
+import { scheduleBlock, wireScheduleBlock, scheduleActions, wireScheduleActions, afterDeleted } from "../schedule/scheduleLinks.js";
 import { placeStore, categoryLabel } from "../../data/places.js";
 import { openActivityForm } from "./activityForm.js";
 
@@ -50,9 +50,8 @@ function detailTime(act) {
     .join("・");
 }
 
-export function openActivityDetail({ activity, placedDay = 0, onChanged }) {
+export function openActivityDetail({ activity, scheduleDay = 0, onChanged }) {
   const act = activity;
-  const placedDays = act.startDate ? [] : dayPlanStore.daysOfActivity(act.tripId, act.id);
   const days = daysOf(act);
   const places = act.placeIds.map((id) => ({ id, place: placeStore.get(id) }));
   const dateText = act.endDate
@@ -70,7 +69,6 @@ export function openActivityDetail({ activity, placedDay = 0, onChanged }) {
 
       ${detailRow("日期", dateText || "未填", true)}
       ${time ? detailRow("時間", time, true) : ""}
-      ${placedDays.length ? detailRow("排在行程", placedDays.map((d) => `Day ${d}`).join("、"), true) : ""}
 
       <div class="detail-row">
         <div class="detail-row__label">地點</div>
@@ -81,38 +79,29 @@ export function openActivityDetail({ activity, placedDay = 0, onChanged }) {
 
       ${act.notes ? detailRow("內容", linkify(act.notes), false, true) : ""}
 
-      ${placedDay
-        ? html`
-            <button type="button" class="btn btn--ghost btn--block act-unplace" data-action="unplace">從 Day ${placedDay} 移除</button>
-            <p class="field__hint center">活動不會被刪除，總覽頁還看得到。</p>
-          `
-        : ""}
-      <div class="form__actions form__actions--spaced">
-        <button type="button" class="btn btn--danger" data-action="delete">刪除</button>
-        <button type="button" class="btn btn--primary" data-action="edit">編輯</button>
-      </div>
+      ${scheduleBlock({ kind: "activity", obj: act, scheduleDay })}
+
+      ${scheduleDay
+        ? scheduleActions(scheduleDay)
+        : html`<div class="form__actions form__actions--spaced">
+            <button type="button" class="btn btn--danger" data-action="delete">刪除</button>
+            <button type="button" class="btn btn--primary" data-action="edit">編輯</button>
+          </div>`}
     `,
     onMount(panel, close) {
-      panel.querySelector('[data-action="delete"]').addEventListener("click", () => {
+      wireScheduleBlock(panel, { kind: "activity", obj: act, close, onChanged });
+      wireScheduleActions(panel, { kind: "activity", obj: act, day: scheduleDay, close, onChanged });
+      panel.querySelector('[data-action="delete"]')?.addEventListener("click", () => {
         if (!window.confirm(`確定要刪除活動「${act.title}」嗎？這個動作無法復原。\n（活動裡的地點會留在想去的地點清單）`)) return;
         const result = activityStore.remove(act.id);
         if (!result.ok) {
           window.alert(result.errors.join("\n"));
           return;
         }
-        dayPlanStore.unplaceActivityEverywhere(act.tripId, act.id);
+        afterDeleted("activity", act);
         close();
         if (onChanged) onChanged();
       });
-      const unplace = panel.querySelector('[data-action="unplace"]');
-      if (unplace) {
-        unplace.addEventListener("click", () => {
-          const result = dayPlanStore.unplaceActivity(act.tripId, placedDay, act.id);
-          if (!result.ok) return window.alert(result.errors.join("\n"));
-          close();
-          if (onChanged) onChanged();
-        });
-      }
       panel.querySelector('[data-action="edit"]').addEventListener("click", () => {
         close();
         openActivityForm({ tripId: act.tripId, activity: act, onSaved: onChanged });

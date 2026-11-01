@@ -6,6 +6,7 @@
  */
 import { html, render } from "../../core/html.js";
 import { openSheet } from "../../core/sheet.js";
+import { clearLabel, wireClearButtons } from "../../core/fieldClear.js";
 import { tripStore, NAME_MAX, DESTINATION_MAX } from "../../data/trips.js";
 
 export function openTripForm({ trip = null, onSaved, onDeleted } = {}) {
@@ -28,11 +29,11 @@ export function openTripForm({ trip = null, onSaved, onDeleted } = {}) {
         </div>
         <div class="field-row">
           <div class="field">
-            <label for="trip-start">出發日</label>
+            ${clearLabel("trip-start", "出發日")}
             <input id="trip-start" name="startDate" type="date" value="${v.startDate}" />
           </div>
           <div class="field">
-            <label for="trip-end">回程日</label>
+            ${clearLabel("trip-end", "回程日")}
             <input id="trip-end" name="endDate" type="date" value="${v.endDate}" />
           </div>
         </div>
@@ -50,6 +51,7 @@ export function openTripForm({ trip = null, onSaved, onDeleted } = {}) {
     `,
     onMount(panel, close) {
       const form = panel.querySelector("form");
+      wireClearButtons(form); // 日期、時間欄位的「清除」（v0.8.3）
       const errorsBox = panel.querySelector(".form__errors");
       const start = form.elements.startDate;
       const end = form.elements.endDate;

@@ -70,6 +70,3 @@
 .act-places + .picker-btn,
 .field__legend + .picker-btn { width: 100%; }
 
-/* 活動預覽：從行程頁打開、排在這天的未定活動 →「從 Day N 移除」（v0.8.2） */
-.act-unplace { margin-top: var(--space-4); }
-.act-unplace + .field__hint { margin-top: var(--space-1, 4px); }

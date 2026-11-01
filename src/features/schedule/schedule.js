@@ -10,6 +10,8 @@
  *   「＋ 新增行程」
  *
  * 點任何一列先開預覽（行程項目、航班、住宿、活動各自的預覽），預覽裡再按「編輯」。
+ * v0.8.3：航班、住宿、活動的預覽底部是「從行程移除｜編輯」（只拿掉這天這張卡，刪除只在總覽頁）；
+ *         沒有日期、排進來的住宿顯示成一張「住宿：飯店名」卡。
  * 旅程進行中時，第一次打開這趟旅程的行程頁會自動跳到今天。
  * 目前看哪一天、是否在排序，存在這個檔案的變數裡；換到別趟旅程時重置。
  */
@@ -50,7 +52,7 @@ function paint(container, trip, refresh) {
   const extra = outOfRangePlans(trip, info);
   const plan = dayPlanStore.get(trip.id, dayInfo.day);
   const isLastUndated = !info.dated && dayInfo.day === info.days.length && dayInfo.day > 1;
-  const canRemoveDay = isLastUndated && !(plan && (plan.items.length || plan.activityIds.length));
+  const canRemoveDay = isLastUndated && !(plan && (plan.items.length || plan.placed.length));
   if (entries.length < 2) state.sorting = false;
   const sorting = state.sorting;
 
@@ -222,16 +224,18 @@ function paint(container, trip, refresh) {
 
 function openEntry(entry, { trip, dayInfo, goDay }) {
   const onChanged = (toDay) => goDay(typeof toDay === "number" ? toDay : undefined);
+  const scheduleDay = dayInfo.day;
   switch (entry.kind) {
     case "item":
       return openItemDetail({ trip, dayInfo, item: entry.data, onChanged });
     case "flight":
-      return openFlightDetail({ flight: entry.data, onChanged });
+      return openFlightDetail({ flight: entry.data, scheduleDay, onChanged });
     case "checkin":
     case "checkout":
-      return openAccommodationDetail({ stay: entry.data, onChanged });
+    case "stay":
+      return openAccommodationDetail({ stay: entry.data, scheduleDay, onChanged });
     case "activity":
-      return openActivityDetail({ activity: entry.data, placedDay: entry.placed ? dayInfo.day : 0, onChanged });
+      return openActivityDetail({ activity: entry.data, scheduleDay, onChanged });
   }
 }
 
@@ -302,7 +306,20 @@ function view(entry) {
         cat: "cat--transport",
         badge: d.direction === "other" ? "" : directionLabel(d.direction),
         sub: route,
-        meta: arrive,
+        meta: entry.placed ? "日期未定" : arrive,
+      };
+    }
+    case "stay": {
+      // 沒有日期、排進來的住宿（v0.8.3）
+      const place = d.placeId ? placeStore.get(d.placeId) : null;
+      return {
+        time: "",
+        title: `住宿：${stayTitle(d)}`,
+        icon: "hotel",
+        cat: "cat--hotel",
+        badge: entry.total > 1 ? `第 ${entry.nth} 天／共 ${entry.total} 天` : "日期未定",
+        sub: place && place.area,
+        nav: place ? navigationUrl(place) : null,
       };
     }
     case "checkout":

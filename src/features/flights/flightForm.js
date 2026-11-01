@@ -1,8 +1,10 @@
 /**
  * flightForm.js — 新增／編輯航班（整頁表單）。
  *
- * openFlightForm({ tripId, flight, onSaved })
+ * openFlightForm({ tripId, flight, defaults, note, onSaved })
  *   flight 為 null → 新增；有值 → 編輯
+ *   defaults／note：從行程頁新增時預先帶入的欄位、表單最上方的說明（v0.8.3）
+ * 存好後有出發時間 → 清掉行程頁「排進來」的紀錄（改照日期出現）。
  *
  * 欄位全部可以空白，但至少要填一項。時間填機票上的當地時間。
  * 出發／抵達機場：按下去開「選地點畫面」（預先篩選「交通」分類，可以切到全部），
@@ -10,17 +12,19 @@
  */
 import { html, raw, render } from "../../core/html.js";
 import { openSheet } from "../../core/sheet.js";
+import { clearLabel, wireClearButtons } from "../../core/fieldClear.js";
 import { flightStore, FLIGHT_DIRECTIONS, LIMITS } from "../../data/flights.js";
 import { mountPlaceField } from "../places/placePicker.js";
+import { afterSaved } from "../schedule/scheduleLinks.js";
 
 // 所有文字欄位用同一組設定（同一種鍵盤，避免切換欄位時鍵盤高度不同而跳動）
 const TEXT_ATTRS = 'autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" type="search" enterkeyhint="done"';
 
-export function openFlightForm({ tripId, flight = null, onSaved } = {}) {
+export function openFlightForm({ tripId, flight = null, defaults = {}, note = "", onSaved } = {}) {
   const isEdit = Boolean(flight);
   const v = flight || {
     direction: "other", airline: "", flightNo: "", departurePlaceId: "", departureTime: "",
-    arrivalPlaceId: "", arrivalTime: "", bookingRef: "", seat: "", notes: "",
+    arrivalPlaceId: "", arrivalTime: "", bookingRef: "", seat: "", notes: "", ...defaults,
   };
   // 目前選的機場（按「儲存」才會寫入）
   const airports = { departure: v.departurePlaceId, arrival: v.arrivalPlaceId };
@@ -29,6 +33,7 @@ export function openFlightForm({ tripId, flight = null, onSaved } = {}) {
     title: isEdit ? "編輯航班" : "新增航班",
     body: html`
       <form class="form" novalidate>
+        ${note ? html`<p class="field__hint">${note}</p>` : ""}
         <fieldset class="field">
           <legend class="field__legend">類型</legend>
           <div class="chips chips--wrap">
@@ -58,13 +63,13 @@ export function openFlightForm({ tripId, flight = null, onSaved } = {}) {
 
         <div class="field" data-airport="departure"></div>
         <div class="field">
-          <label for="fl-dep-time">出發時間（當地）</label>
+          ${clearLabel("fl-dep-time", "出發時間（當地）")}
           <input id="fl-dep-time" name="departureTime" type="datetime-local" value="${v.departureTime}" />
         </div>
 
         <div class="field" data-airport="arrival"></div>
         <div class="field">
-          <label for="fl-arr-time">抵達時間（當地）</label>
+          ${clearLabel("fl-arr-time", "抵達時間（當地）")}
           <input id="fl-arr-time" name="arrivalTime" type="datetime-local" value="${v.arrivalTime}" />
         </div>
         <p class="field__hint">時間照機票填當地時間，例如出發填台灣時間、抵達填日本時間。</p>
@@ -99,6 +104,7 @@ export function openFlightForm({ tripId, flight = null, onSaved } = {}) {
     `,
     onMount(panel, close) {
       const form = panel.querySelector("form");
+      wireClearButtons(form); // 日期、時間欄位的「清除」（v0.8.3）
       const errorsBox = panel.querySelector(".form__errors");
 
       // 機場欄位（選地點畫面預先篩選「交通」，2026-11-01 機場併入交通）
@@ -137,6 +143,7 @@ export function openFlightForm({ tripId, flight = null, onSaved } = {}) {
           errorsBox.hidden = false;
           return;
         }
+        afterSaved("flight", result.flight);
         close();
         if (onSaved) onSaved(result.flight);
       });
