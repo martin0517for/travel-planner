@@ -70,7 +70,7 @@ function flightRow(f) {
   return html`
     <li>
       <button type="button" class="place-row" data-flight="${f.id}">
-        <span class="place-row__icon cat--airport">${icon("plane")}</span>
+        <span class="place-row__icon cat--transport">${icon("plane")}</span>
         <span class="place-row__body">
           <span class="place-row__name">${flightTitle(f)}</span>
           ${route ? html`<span class="place-row__sub">${route}</span>` : ""}

@@ -50,8 +50,7 @@
 }
 .picker-btn.has-value { border-style: solid; }
 .picker-btn > .icon { width: 18px; height: 18px; flex-shrink: 0; color: var(--color-ink-soft); }
-.picker-btn.has-value > .icon { color: #337ea9; }
-[data-theme="dark"] .picker-btn.has-value > .icon { color: #6fa9d0; }
+.picker-btn.has-value > .icon { color: var(--color-ink); }
 .picker-btn__text { min-width: 0; display: flex; flex-direction: column; }
 .picker-btn__name,
 .picker-btn__sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

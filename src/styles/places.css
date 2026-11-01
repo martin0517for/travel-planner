@@ -9,13 +9,11 @@
 .cat--shopping   { --cat: #c4487a; }
 .cat--hotel      { --cat: #9f6b53; }
 .cat--transport  { --cat: #787774; }
-.cat--airport    { --cat: #337ea9; }
 [data-theme="dark"] .cat--attraction { --cat: #7fb797; }
 [data-theme="dark"] .cat--restaurant { --cat: #e2a35c; }
 [data-theme="dark"] .cat--shopping   { --cat: #e0709b; }
 [data-theme="dark"] .cat--hotel      { --cat: #c99b7c; }
 [data-theme="dark"] .cat--transport  { --cat: #b9b8b5; }
-[data-theme="dark"] .cat--airport    { --cat: #6fa9d0; }
 
 /* ---- 篩選列（chip） ---- */
 .chips {
@@ -223,7 +221,7 @@
   background: var(--color-paper-card);
 }
 .badge.cat--attraction, .badge.cat--restaurant, .badge.cat--shopping,
-.badge.cat--hotel, .badge.cat--transport, .badge.cat--airport {
+.badge.cat--hotel, .badge.cat--transport {
   color: var(--cat);
   border-color: var(--cat);
   background: transparent;

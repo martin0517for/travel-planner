@@ -258,3 +258,13 @@ body.has-page-sheet #app { display: none; }
   background-size: 10px 2px;
   background-repeat: repeat-x;
 }
+
+/* ---- 設定頁最下方的版本號 ---- */
+.app-version {
+  margin: var(--space-6) 0 var(--space-4);
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  color: var(--color-ink-soft);
+}

@@ -3,7 +3,7 @@
  *
  * openPlacePicker({ title, category, selectedId, onPick })
  *   title       畫面標題，例如「選擇出發機場」
- *   category    預先選好的分類篩選（例如 "airport"），使用者可以切到「全部」
+ *   category    預先選好的分類篩選（例如航班選機場時是 "transport"），使用者可以切到「全部」
  *   selectedId  目前已選的地點，清單上會打勾
  *   onPick(place)  選好之後呼叫（畫面會自己關閉）
  *

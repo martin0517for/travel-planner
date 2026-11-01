@@ -5,7 +5,8 @@
  * Place 欄位：
  *   id        string   例如 "place_k3x9q2m7a1bc"
  *   name      string   必填，最多 60 字（自己習慣的名稱，例如中文）
- *   category  string   固定 6 類之一（見 PLACE_CATEGORIES），決定圖示與顏色
+ *   category  string   固定 5 類之一（見 PLACE_CATEGORIES），決定圖示與顏色
+ *                      （2026-11-01「機場」併入「交通」：舊資料的 airport 讀取時自動當成 transport）
  *   area      string   地區（大分類，例如「東京」），最多 30 字，用來篩選
  *   tags      string[] 自訂標籤，最多 10 個，每個最多 20 字（例如「必訪」「雨天備案」）
  *   address   string   最多 160 字
@@ -37,7 +38,6 @@ export const PLACE_CATEGORIES = [
   { value: "shopping", label: "購物" },
   { value: "hotel", label: "住宿" },
   { value: "transport", label: "交通" },
-  { value: "airport", label: "機場" },
 ];
 const CATEGORY_VALUES = new Set(PLACE_CATEGORIES.map((c) => c.value));
 
@@ -69,7 +69,7 @@ function cleanPlace(raw) {
   const hasCoords = isValidLatLng(raw.lat, raw.lng);
   return {
     name: cleanText(raw.name, LIMITS.name),
-    category: CATEGORY_VALUES.has(raw.category) ? raw.category : "attraction",
+    category: CATEGORY_VALUES.has(raw.category) ? raw.category : raw.category === "airport" ? "transport" : "attraction",
     area: cleanText(raw.area, LIMITS.area),
     tags: cleanTags(raw.tags),
     address: cleanText(raw.address, LIMITS.address),

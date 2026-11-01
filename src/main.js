@@ -17,6 +17,7 @@ import { renderTripList } from "./features/trips/tripList.js";
 import { renderTripOverview } from "./features/trips/tripOverview.js";
 import { tripStore } from "./data/trips.js";
 import { renderPlaceList } from "./features/places/placeList.js";
+import { renderSettings } from "./features/settings/settings.js";
 
 applyTheme("system");
 watchSystemTheme(() => "system");
@@ -52,10 +53,7 @@ const routes = {
   "/trips/:id/map": tripPage("map", "Map", comingSoon("地圖")),
   "/trips/:id/lists": tripPage("lists", "Lists", comingSoon("清單")),
   "/places": (container) => ({ ...renderPlaceList(container), back: lastMainPath, page: "places" }),
-  "/settings": (container) => {
-    renderPlaceholder(container, { heading: "設定", note: "深色模式、資料備份等設定會放在這裡。" });
-    return { eyebrow: "Settings", title: "設定", back: lastMainPath, page: "settings" };
-  },
+  "/settings": (container) => ({ ...renderSettings(container), back: lastMainPath, page: "settings" }),
 };
 
 function notFound(container) {

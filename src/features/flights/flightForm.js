@@ -5,7 +5,7 @@
  *   flight 為 null → 新增；有值 → 編輯
  *
  * 欄位全部可以空白，但至少要填一項。時間填機票上的當地時間。
- * 出發／抵達機場：按下去開「選地點畫面」（預先篩選機場分類，可以切到全部），
+ * 出發／抵達機場：按下去開「選地點畫面」（預先篩選「交通」分類，可以切到全部），
  * 選好後顯示機場名稱與地區，右邊有「清除」。
  */
 import { html, raw, render } from "../../core/html.js";
@@ -111,7 +111,7 @@ export function openFlightForm({ tripId, flight = null, onSaved } = {}) {
         box.querySelector("[data-pick]").addEventListener("click", () =>
           openPlacePicker({
             title: `選擇${AIRPORT_LABELS[key]}`,
-            category: "airport",
+            category: "transport", // 2026-11-01 機場併入交通
             selectedId: airports[key],
             onPick: (place) => {
               airports[key] = place.id;
@@ -167,7 +167,7 @@ function airportField(label, placeId) {
     <div class="field__legend">${label}</div>
     <div class="picker-field">
       <button type="button" class="picker-btn ${place ? "has-value" : ""}" data-pick>
-        ${icon("airport")}
+        ${icon("plane")}
         <span class="picker-btn__text">
           ${place
             ? html`<span class="picker-btn__name">${place.name}</span>${place.area ? html`<span class="picker-btn__sub">${place.area}</span>` : ""}`
