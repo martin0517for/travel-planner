@@ -5,7 +5,8 @@
  * 流程：
  *   1. 打開整頁（不自動 focus、不自動讀剪貼簿）。最上面灰框說明用法。
  *   2. 按「貼上」→ 讀剪貼簿，找出第一個 https 網址填進欄位；或自己貼進欄位按鍵盤的「搜尋」。
- *   3. 這趟已經有同一個連結 → 底部面板「這篇已經存過了」：打開那一篇｜仍然新增（讀取前就檢查）。
+ *   3. 這趟已經有同一個連結 → 底部面板「這篇已經存過了」：打開那一篇｜仍然新增。
+ *      讀取前先用貼上的網址檢查；Threads 分享短網址讀完才知道是哪一篇，讀到後用正式網址再檢查一次（v0.11.1）。
  *   4. IG／Threads → 灰框變成「正在讀取…」，按鈕停用，下方「取消讀取」。
  *      讀到 → 關掉這頁，打開新增筆記並帶入（類型推薦、標題、連結、內容），要按「新增」才存。
  *      讀不到 → 一樣打開新增筆記，只帶入連結，上方警告「讀不到…」。
@@ -82,13 +83,18 @@ export function openPasteLink({ trip }) {
         input.blur();
 
         // C-6：這趟已經有同一個連結 → 先問
-        const key = linkKey(url);
-        const dup = noteStore.listByTrip(trip.id).find((n) => n.url && linkKey(n.url) === key);
-        if (dup) return askDuplicate(dup, () => read(url));
+        const dup = findDuplicate(url);
+        if (dup) return askDuplicate(dup, () => read(url, { checked: true }));
         read(url);
       }
 
-      async function read(url) {
+      /** 這趟筆記裡同一篇的連結（不分追蹤參數、www、reel／reels…，見 linkKey） */
+      function findDuplicate(url) {
+        const key = linkKey(url);
+        return key ? noteStore.listByTrip(trip.id).find((n) => n.url && linkKey(n.url) === key) : null;
+      }
+
+      async function read(url, { checked = false } = {}) {
         const source = readableSource(url);
         // C-5：其他網站 → 不讀，直接帶入連結
         if (!source) return openForm({ prefill: { url } });
@@ -104,7 +110,11 @@ export function openPasteLink({ trip }) {
 
         if (result.ok) {
           const n = organizeNote(result);
-          openForm({ prefill: { kind: "rec", title: n.title, url: n.url, body: n.body }, notice: { text: readNotice(result) } });
+          const show = () => openForm({ prefill: { kind: "rec", title: n.title, url: n.url, body: n.body }, notice: { text: readNotice(result) } });
+          // Threads 的分享短網址（/share/…）讀完才知道是哪一篇 → 用讀回來的正式網址再檢查一次
+          const dup = !checked && findDuplicate(n.url);
+          if (dup) return askDuplicate(dup, show);
+          show();
         } else {
           openForm({
             prefill: { kind: "rec", url: cleanLink(url) },
