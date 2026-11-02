@@ -22,7 +22,8 @@ import { tripPlaceStore } from "../../data/tripPlaces.js";
 import { tripUsages, tripUsedPlaceIds } from "../../data/tripPlaceUsage.js";
 import { openTripPlaceAdder } from "./tripPlaceAdder.js";
 import { openTripPlaceDetail } from "./tripPlaceDetail.js";
-import { renderTripNotes } from "../notes/tripNotes.js";
+import { renderTripNotes, focusNote } from "../notes/tripNotes.js";
+import { navigate } from "../../core/router.js";
 
 const state = { tripId: "", tab: "places", area: "", category: "", q: "" };
 
@@ -36,6 +37,18 @@ const TABS = [
  * 空陣列代表「未排入」。看航班、住宿、活動、每日行程（data/tripPlaceUsage.js）。
  */
 const scheduledIn = tripUsages;
+
+/**
+ * 跳到這趟的「清單 → 筆記」並打開某則筆記的預覽（v0.11.0：貼上連結存好後、重複連結「打開那一篇」）。
+ * 已經在清單頁時網址不會變，所以自己觸發一次重畫。
+ */
+export function showTripNote(tripId, noteId) {
+  Object.assign(state, { tripId, tab: "notes", area: "", category: "", q: "" });
+  focusNote(tripId, noteId);
+  const path = `/trips/${encodeURIComponent(tripId)}/lists`;
+  if (window.location.hash === `#${path}`) window.dispatchEvent(new HashChangeEvent("hashchange"));
+  else navigate(path);
+}
 
 export function renderTripLists(container, trip) {
   if (state.tripId !== trip.id) {

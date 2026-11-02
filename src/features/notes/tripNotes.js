@@ -18,10 +18,22 @@ import { openNoteForm } from "./noteForm.js";
 import { openNoteDetail, doneLabel } from "./noteDetail.js";
 
 const state = { tripId: "", kind: "", q: "" };
+let pendingOpen = ""; // 下次畫完要打開預覽的筆記 id（v0.11.0 貼上連結存好後）
+
+/** 下次畫筆記分頁時：清掉篩選與搜尋，並打開這則的預覽 */
+export function focusNote(tripId, noteId) {
+  Object.assign(state, { tripId, kind: "", q: "" });
+  pendingOpen = noteId;
+}
 
 export function renderTripNotes(box, trip) {
   if (state.tripId !== trip.id) Object.assign(state, { tripId: trip.id, kind: "", q: "" });
   paint(box, trip);
+  if (pendingOpen) {
+    const note = noteStore.get(pendingOpen);
+    pendingOpen = "";
+    if (note && note.tripId === trip.id) openNoteDetail({ note, onChanged: () => paint(box, trip) });
+  }
 }
 
 function paint(box, trip) {

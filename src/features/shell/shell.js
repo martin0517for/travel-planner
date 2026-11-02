@@ -11,6 +11,8 @@
  */
 import { html, render } from "../../core/html.js";
 import { icon } from "../../core/icons.js";
+import { tripStore } from "../../data/trips.js";
+import { openPasteLink } from "../notes/pasteLink.js";
 
 const TRIP_TABS = [
   { key: "overview", label: "總覽", icon: "overview", path: (id) => `/trips/${id}` },
@@ -21,11 +23,12 @@ const TRIP_TABS = [
 
 export function renderShell(meta) {
   renderTopbar(meta);
+  if (meta.tripId) wirePasteLink(meta.tripId);
   renderNavbar(meta);
   document.title = meta.title ? `${meta.title}｜旅行規劃` : "旅行規劃";
 }
 
-function renderTopbar({ eyebrow, title, back, page }) {
+function renderTopbar({ eyebrow, title, back, page, tripId }) {
   const topbar = document.getElementById("topbar");
   render(
     topbar,
@@ -38,11 +41,22 @@ function renderTopbar({ eyebrow, title, back, page }) {
         <h1 class="topbar__title">${title}</h1>
       </div>
       <div class="topbar__actions">
+        ${tripId ? html`<button type="button" class="icon-btn" data-action="paste-link" aria-label="貼上連結">${icon("link")}</button>` : ""}
         ${page === "places" ? "" : html`<a class="icon-btn" href="#/places" aria-label="地點資料庫">${icon("places")}</a>`}
         ${page === "settings" ? "" : html`<a class="icon-btn" href="#/settings" aria-label="設定">${icon("settings")}</a>`}
       </div>
     `
   );
+}
+
+/** 旅程裡的頂部列多一顆「貼上連結」（v0.11.0，在地點資料庫左邊） */
+function wirePasteLink(tripId) {
+  const btn = document.querySelector('#topbar [data-action="paste-link"]');
+  if (!btn) return;
+  btn.addEventListener("click", () => {
+    const trip = tripStore.get(tripId);
+    if (trip) openPasteLink({ trip });
+  });
 }
 
 function renderNavbar({ tripId, active }) {
