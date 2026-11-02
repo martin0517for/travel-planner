@@ -7,4 +7,4 @@
  *   Z：其他每次更新（小功能、修正、調整）+1
  * 每次推上 GitHub 前都要更新這裡，並告訴使用者目前的版本號。
  */
-export const APP_VERSION = "0.11.1";
+export const APP_VERSION = "0.11.2";
