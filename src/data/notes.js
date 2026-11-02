@@ -4,14 +4,14 @@
  * Note 欄位：
  *   id         string   例如 "note_k3x9q2m7a1bc"
  *   tripId     string   屬於哪一趟旅程（每趟各自一份；刪除旅程時連帶刪除）
- *   kind       string   類型：note 筆記（預設）／trip 行程／buy 想買／souvenir 紀念品／other 其他
- *                      （v0.10.1 加上行程、紀念品）
+ *   kind       string   類型：note 筆記（預設）／food 美食／trip 行程／buy 想買／souvenir 紀念品／other 其他
+ *                      （v0.10.1 加上行程、紀念品；v0.10.3 加上美食）
  *   customKind string   自訂類型（v0.10.2）：只有 kind＝other 時才有，最多 10 字，例如「藥妝」；
  *                      空白時顯示「其他」
  *   title      string   標題（必填），最多 60 字（欄位不叫 name，避免 iPhone 當成聯絡人表單）
  *   url        string   參考連結，一個，只接受 http/https；可空
  *   body       string   內容，最多 3000 字（網址在畫面上會變成連結）；可空
- *   done       boolean  完成（筆記＝看過、行程＝去過、想買／紀念品＝買了、其他＝完成）
+ *   done       boolean  完成（筆記＝看過、美食＝吃過、行程＝去過、想買／紀念品＝買了、其他＝完成）
  *   createdAt / updatedAt   列表新的排在上面（createdAt）
  *
  * 資安：寫入前一律經過 validateNoteInput；從本機讀出的資料也經過 normalizeNote，格式不對的略過。
@@ -25,9 +25,10 @@ const STORAGE_FAIL = "儲存失敗：手機本機空間不足，或瀏覽器不�
 
 export const LIMITS = { title: 60, url: 500, body: 3000, customKind: 10 };
 
-// 順序＝表單選項與篩選列的順序（v0.10.1 使用者決定）
+// 順序＝表單選項與篩選列的順序（v0.10.1 使用者決定；v0.10.3 美食排在筆記後面）
 export const NOTE_KINDS = [
   { value: "note", label: "筆記", icon: "note", cat: "cat--kind", done: "看過" },
+  { value: "food", label: "美食", icon: "restaurant", cat: "cat--restaurant", done: "吃過" },
   { value: "trip", label: "行程", icon: "schedule", cat: "cat--attraction", done: "去過" },
   { value: "buy", label: "想買", icon: "shopping", cat: "cat--shopping", done: "買了" },
   { value: "souvenir", label: "紀念品", icon: "gift", cat: "cat--hotel", done: "買了" },
@@ -113,9 +114,10 @@ export const noteStore = {
     return loadAll().find((n) => n.id === id) || null;
   },
 
-  /** 用過的自訂類型（所有旅程，最近用的在前面，不重複；表單的快速選項） */
+  /** 用過的自訂類型（所有旅程，最近用的在前面，不重複；表單的快速選項）
+   *  跟內建類型同名的（例如 v0.10.3 前自訂的「美食」）不列出，避免重複 */
   usedCustomKinds(max = 12) {
-    const seen = new Set();
+    const seen = new Set(NOTE_KINDS.map((k) => k.label));
     return loadAll()
       .filter((n) => n.customKind)
       .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))

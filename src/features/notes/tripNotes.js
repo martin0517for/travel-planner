@@ -162,7 +162,10 @@ function row(n) {
 
 /** 篩選用的鍵：內建類型用 kind；自訂類型用 "c:名稱"（每個自訂類型各自一顆） */
 function filterKey(n) {
-  return n.kind === "other" && n.customKind ? `c:${n.customKind}` : n.kind;
+  if (n.kind !== "other" || !n.customKind) return n.kind;
+  // 自訂類型跟內建類型同名（例如 v0.10.3 前自訂的「美食」）→ 篩選時算在內建那一顆，不出現兩顆同名按鈕；資料不改
+  const same = NOTE_KINDS.find((k) => k.value !== "other" && k.label === n.customKind);
+  return same ? same.value : `c:${n.customKind}`;
 }
 
 /** 篩選列的選項：內建類型（照順序，「其他」除外）→ 自訂類型 → 其他；只列這趟用到的 */

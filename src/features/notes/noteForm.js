@@ -4,7 +4,7 @@
  * openNoteForm({ tripId, note, onSaved })
  *   note 為 null → 新增；有值 → 編輯
  *
- * 欄位（2026-11-01 使用者決定）：類型（筆記／行程／想買／紀念品／其他，預設筆記）、標題（必填 60 字）、
+ * 欄位（2026-11-01 使用者決定）：類型（筆記／美食／行程／想買／紀念品／其他，預設筆記；v0.10.3 加上美食）、標題（必填 60 字）、
  * 參考連結（一個，只接受 http/https）、內容（3000 字，網址在預覽裡會變成連結）。
  * v0.10.2：選「其他」時出現「自訂類型」（10 字，可不填），下方列出用過的自訂類型，點一下帶入。
  */
@@ -42,7 +42,7 @@ export function openNoteForm({ tripId, note = null, onSaved } = {}) {
         <div class="field" data-custom ${v.kind === "other" ? "" : html`hidden`}>
           <label for="nt-custom">自訂類型</label>
           <input id="nt-custom" ${raw(TEXT_ATTRS)} name="noteCustom" maxlength="${LIMITS.customKind}"
-                 placeholder="例如：藥妝、美食（可不填）" value="${v.customKind || ""}" />
+                 placeholder="例如：藥妝、伴手禮（可不填）" value="${v.customKind || ""}" />
           ${used.length
             ? html`<div class="quick-picks">${used.map((k) => html`<button type="button" class="tag tag--btn" data-pick-kind="${k}">${k}</button>`)}</div>`
             : ""}
