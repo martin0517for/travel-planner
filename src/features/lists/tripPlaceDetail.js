@@ -14,6 +14,9 @@
  * - 移除只會把地點移出這趟的清單，共用地點資料庫不受影響。
  *   已排入（用在航班、住宿；之後還有活動、行程）的地點不能移除：按鈕變灰，下方寫原因（2026-11-01 使用者決定）。
  * - 編輯備註、編輯地點資料存好後，重新打開更新過的預覽。
+ * - stacked（v0.12.0）：從筆記、活動的預覽點地點打開時，疊在原本的預覽上面，只看內容；
+ *   底部只有「返回」（backLabel，例如「返回筆記」），關掉就回到原本的預覽。
+ *   編輯備註、移出清單要到「清單 → 想去的地點」做（避免兩層預覽之間資料不同步）。
  */
 import { html, safeUrl } from "../../core/html.js";
 import { icon } from "../../core/icons.js";
@@ -25,7 +28,7 @@ import { tripPlaceStore } from "../../data/tripPlaces.js";
 import { openPlaceForm } from "../places/placeForm.js";
 import { openTripPlaceNotesForm } from "./tripPlaceNotesForm.js";
 
-export function openTripPlaceDetail({ entry, place, trip, usedIn = [], onChanged }) {
+export function openTripPlaceDetail({ entry, place, trip, usedIn = [], onChanged, stacked = false, backLabel = "返回" }) {
   const usedText = usedIn.map((u) => u.full).join("、");
   const status = entry.visited ? "去過" : usedIn.length ? `已排入：${usedText}` : "未排入";
   const nav = navigationUrl(place);
@@ -68,18 +71,27 @@ export function openTripPlaceDetail({ entry, place, trip, usedIn = [], onChanged
           : html`<div class="muted">還沒有寫這趟的備註</div>`}
       </div>
 
-      <div class="form__actions form__actions--spaced">
-        <button type="button" class="btn btn--danger" data-action="remove" ${usedIn.length ? html`disabled` : ""}>從清單移除</button>
-        <button type="button" class="btn btn--primary" data-action="notes">編輯備註</button>
-      </div>
-      ${usedIn.length
-        ? html`<p class="field__hint tp-remove-hint">用在：${usedText}。要先從那裡移除，才能移出清單。</p>`
-        : ""}
-      <button type="button" class="link-btn tp-edit-place" data-action="edit-place">
-        編輯地點資料（會影響所有旅程）
-      </button>
+      ${stacked
+        ? html`<div class="form__actions form__actions--spaced">
+              <button type="button" class="btn btn--ghost btn--block" data-action="back">${icon("back")}${backLabel}</button>
+            </div>
+            <p class="field__hint tp-remove-hint">要編輯這趟的備註或移出清單，請到「清單 → 想去的地點」。</p>`
+        : html`<div class="form__actions form__actions--spaced">
+              <button type="button" class="btn btn--danger" data-action="remove" ${usedIn.length ? html`disabled` : ""}>從清單移除</button>
+              <button type="button" class="btn btn--primary" data-action="notes">編輯備註</button>
+            </div>
+            ${usedIn.length
+              ? html`<p class="field__hint tp-remove-hint">用在：${usedText}。要先從那裡移除，才能移出清單。</p>`
+              : ""}
+            <button type="button" class="link-btn tp-edit-place" data-action="edit-place">
+              編輯地點資料（會影響所有旅程）
+            </button>`}
     `,
     onMount(panel, close) {
+      if (stacked) {
+        panel.querySelector('[data-action="back"]').addEventListener("click", close);
+        return;
+      }
       panel.querySelector('[data-action="remove"]').addEventListener("click", () => {
         if (usedIn.length) return; // 已排入的不能移除（按鈕已停用，這裡再擋一次）
         if (!window.confirm(`要把「${place.name}」從這趟的清單移除嗎？\n（地點資料庫裡的資料不會被刪除）`)) return;

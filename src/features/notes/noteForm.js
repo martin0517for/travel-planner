@@ -7,6 +7,8 @@
  * 欄位（2026-11-01 使用者決定）：類型（筆記／美食／行程／想買／紀念品／其他，預設筆記；v0.10.3 加上美食）、標題（必填 60 字）、
  * 參考連結（一個，只接受 http/https）、內容（3000 字，網址在預覽裡會變成連結）。
  * v0.10.2：選「其他」時出現「自訂類型」（10 字，可不填），下方列出用過的自訂類型，點一下帶入。
+ * v0.12.0：「參考連結」下面、「內容」上面加「地點」（多個，▲▼ 調整順序、× 移除，最多 30 個；跟活動同一套，
+ *          places/placeLinks.js）。存好後地點自動加入這趟的「想去的地點」。
  * v0.11.0：貼上連結（pasteLink.js）讀完後打開這裡：
  *   prefill  { kind, title, url, body } 新增時預先帶入
  *   notice   { text, warn } 表單最上面的灰色提示框（「已從 Instagram @帳號 帶入…」「讀不到…」）
@@ -16,6 +18,7 @@ import { html, raw, render } from "../../core/html.js";
 import { icon } from "../../core/icons.js";
 import { openSheet } from "../../core/sheet.js";
 import { noteStore, NOTE_KINDS, LIMITS } from "../../data/notes.js";
+import { mountPlaceListField } from "../places/placeLinks.js";
 import { readableSource, readLink, organizeNote, SOURCE_LABEL } from "../../core/linkReader.js";
 
 // 所有文字欄位用同一組設定（同一種鍵盤，避免切換欄位時鍵盤高度不同而跳動）
@@ -23,7 +26,7 @@ const TEXT_ATTRS = 'autocomplete="off" autocorrect="off" autocapitalize="off" sp
 
 export function openNoteForm({ tripId, note = null, prefill = null, notice = null, onSaved } = {}) {
   const isEdit = Boolean(note);
-  const v = note || { kind: "note", customKind: "", title: "", url: "", body: "", ...(prefill || {}) };
+  const v = note || { kind: "note", customKind: "", title: "", url: "", body: "", placeIds: [], ...(prefill || {}) };
   const used = noteStore.usedCustomKinds();
 
   openSheet({
@@ -71,6 +74,8 @@ export function openNoteForm({ tripId, note = null, prefill = null, notice = nul
           ${isEdit ? "" : html`<button type="button" class="btn btn--ghost btn--small read-btn" data-action="read" hidden>${icon("download")}讀取內容</button>`}
         </div>
 
+        <div class="field" data-places></div>
+
         <div class="field">
           <label for="nt-body">內容</label>
           <textarea id="nt-body" name="noteBody" rows="8" maxlength="${LIMITS.body}"
@@ -107,12 +112,20 @@ export function openNoteForm({ tripId, note = null, prefill = null, notice = nul
 
       if (!isEdit) wireReadButton(panel, form, paintCount);
 
+      const places = mountPlaceListField(panel.querySelector("[data-places]"), {
+        tripId: tripId || (note && note.tripId) || "",
+        pickerTitle: "選擇筆記的地點",
+        placeIds: v.placeIds || [],
+        max: LIMITS.places,
+        emptyText: "選擇地點（可不選，可以選很多個）",
+      });
+
       form.addEventListener("submit", (e) => {
         e.preventDefault();
         const el = form.elements;
         const kindInput = form.querySelector('input[name="kind"]:checked');
         const kind = kindInput ? kindInput.value : "note";
-        const input = { kind, customKind: kind === "other" ? el.noteCustom.value : "", title: el.noteTitle.value, url: el.noteUrl.value, body: body.value };
+        const input = { kind, customKind: kind === "other" ? el.noteCustom.value : "", title: el.noteTitle.value, url: el.noteUrl.value, body: body.value, placeIds: places.get() };
         const result = isEdit ? noteStore.update(note.id, input) : noteStore.create(tripId, input);
         if (!result.ok) {
           render(errorsBox, html`${result.errors.map((err) => html`<div>${err}</div>`)}`);

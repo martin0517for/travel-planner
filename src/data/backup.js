@@ -145,7 +145,10 @@ function checkReferences(data) {
     needTrip("tripPlaces", t);
     needPlace("tripPlaces", t.placeId);
   }
-  for (const n of data.notes) needTrip("notes", n);
+  for (const n of data.notes) {
+    needTrip("notes", n);
+    n.placeIds.forEach((id) => needPlace("notes", id)); // v0.12.0
+  }
   return [...new Set(errors)];
 }
 

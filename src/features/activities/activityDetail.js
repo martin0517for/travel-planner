@@ -3,6 +3,7 @@
  * 點總覽頁上的活動會先開這個。
  * 版面：天數徽章 → 日期、時間 → 地點列表（照活動裡排的順序，每個右邊有「導航」）→ 內容
  *       → 底部「刪除｜編輯」（關閉用右上角的 ×）。
+ * v0.12.0：點地點 → 疊上這個地點的預覽（這趟「想去的地點」的內容），關掉回到活動預覽。
  * v0.8.3：多一行「行程」；被移除過 →「加入行程」，沒有日期 →「排進行程」。
  *         從行程頁打開（scheduleDay＝第幾天）時，底部改成「從行程移除｜編輯」，不能刪除。
  */
@@ -10,11 +11,11 @@ import { html } from "../../core/html.js";
 import { icon } from "../../core/icons.js";
 import { openSheet } from "../../core/sheet.js";
 import { linkify } from "../../core/linkify.js";
-import { navigationUrl } from "../../core/geo.js";
 import { formatDateShort } from "../../core/dates.js";
 import { activityStore, daysOf } from "../../data/activities.js";
 import { scheduleBlock, wireScheduleBlock, scheduleActions, wireScheduleActions, afterDeleted } from "../schedule/scheduleLinks.js";
-import { placeStore, categoryLabel } from "../../data/places.js";
+import { placeStore } from "../../data/places.js";
+import { detailPlaceList, wirePlaceLinks } from "../places/placeLinks.js";
 import { openActivityForm } from "./activityForm.js";
 
 /** 地點名稱（已刪除的略過）：總覽頁第 2 行、預覽共用 */
@@ -73,7 +74,7 @@ export function openActivityDetail({ activity, scheduleDay = 0, onChanged }) {
       <div class="detail-row">
         <div class="detail-row__label">地點</div>
         ${places.length
-          ? html`<ol class="act-places act-places--detail">${places.map(({ place }, i) => detailPlace(place, i))}</ol>`
+          ? detailPlaceList(act.placeIds)
           : html`<div class="detail-row__value muted">還沒有選地點</div>`}
       </div>
 
@@ -89,6 +90,7 @@ export function openActivityDetail({ activity, scheduleDay = 0, onChanged }) {
           </div>`}
     `,
     onMount(panel, close) {
+      wirePlaceLinks(panel, { tripId: act.tripId, backLabel: "返回活動" });
       wireScheduleBlock(panel, { kind: "activity", obj: act, close, onChanged });
       wireScheduleActions(panel, { kind: "activity", obj: act, day: scheduleDay, close, onChanged });
       panel.querySelector('[data-action="delete"]')?.addEventListener("click", () => {
@@ -108,31 +110,6 @@ export function openActivityDetail({ activity, scheduleDay = 0, onChanged }) {
       });
     },
   });
-}
-
-function detailPlace(place, index) {
-  if (!place) {
-    return html`
-      <li class="act-place">
-        <span class="act-place__num">${index + 1}</span>
-        <span class="act-place__body"><span class="act-place__name is-missing">（地點已刪除）</span></span>
-      </li>
-    `;
-  }
-  const nav = navigationUrl(place);
-  return html`
-    <li class="act-place">
-      <span class="act-place__num">${index + 1}</span>
-      <span class="place-row__icon cat--${place.category}" title="${categoryLabel(place.category)}">${icon(place.category)}</span>
-      <span class="act-place__body">
-        <span class="act-place__name">${place.name}</span>
-        ${place.area ? html`<span class="act-place__sub">${place.area}</span>` : ""}
-      </span>
-      ${nav
-        ? html`<a class="btn btn--small act-place__nav" href="${nav}" target="_blank" rel="noopener noreferrer">${icon("navigate")}導航</a>`
-        : ""}
-    </li>
-  `;
 }
 
 function detailRow(label, value, mono = false, preWrap = false) {

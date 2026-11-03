@@ -194,3 +194,15 @@
 .note-link .icon { width: 13px; height: 13px; flex-shrink: 0; }
 .note-link span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .note-body { overflow-wrap: anywhere; }
+/* 筆記列表第 2 行：第一個地點 +N（v0.12.0） */
+.note-place {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  font-size: 0.82rem;
+  color: var(--color-ink-soft);
+}
+.note-place .icon { width: 13px; height: 13px; flex-shrink: 0; }
+.note-place span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.note-place__more { flex-shrink: 0; font-family: var(--font-mono); font-size: 0.75rem; }

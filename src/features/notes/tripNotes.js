@@ -6,7 +6,7 @@
  *   搜尋框（只搜這趟：標題、內容、網址）＋「＋」新增
  *   類型篩選列（全部＋筆記／行程／想買／紀念品＋每個自訂類型各一顆＋其他；只列這趟用到的，只有一種時不顯示）
  *   「未完成」「完成」兩個區塊（各顯示數量；新的排上面）
- *     每列：勾選框（只有點框才會勾）、類型圖示、標題、連結來源（有連結時）
+ *     每列：勾選框（只有點框才會勾）、類型圖示、標題、地點（v0.12.0「第一個地點 +N」）、連結來源（有連結時）
  *     完成＝打勾＋變淡，移到「完成」（不加刪除線）
  * 點一列 → 預覽（noteDetail.js）→ 編輯。
  */
@@ -16,6 +16,10 @@ import { linkSource } from "../../core/linkify.js";
 import { noteStore, NOTE_KINDS, noteKind, noteKindLabel } from "../../data/notes.js";
 import { openNoteForm } from "./noteForm.js";
 import { openNoteDetail, doneLabel } from "./noteDetail.js";
+import { placeStore } from "../../data/places.js";
+
+/** 筆記的地點名稱（已刪除的略過） */
+const placeNames = (n) => n.placeIds.map((id) => placeStore.get(id)).filter(Boolean).map((p) => p.name);
 
 const state = { tripId: "", kind: "", q: "" };
 let pendingOpen = ""; // 下次畫完要打開預覽的筆記 id（v0.11.0 貼上連結存好後）
@@ -116,7 +120,7 @@ function paintResults(box, notes, repaint) {
   const results = box.querySelector("#nt-results");
   const text = state.q.trim().toLowerCase();
   const shown = notes.filter(
-    (n) => (!state.kind || filterKey(n) === state.kind) && (!text || [n.title, n.body, n.url, n.customKind].some((t) => t.toLowerCase().includes(text)))
+    (n) => (!state.kind || filterKey(n) === state.kind) && (!text || [n.title, n.body, n.url, n.customKind, ...placeNames(n)].some((t) => t.toLowerCase().includes(text)))
   );
   const groups = [
     { title: "未完成", list: shown.filter((n) => !n.done) },
@@ -155,6 +159,7 @@ function paintResults(box, notes, repaint) {
 function row(n) {
   const k = noteKind(n.kind);
   const url = safeUrl(n.url);
+  const places = placeNames(n);
   return html`
     <li class="tp-row ${n.done ? "is-visited" : ""}">
       <button type="button" class="tp-check ${n.done ? "is-checked" : ""}" data-done="${n.id}"
@@ -165,6 +170,9 @@ function row(n) {
         <span class="place-row__icon ${k.cat}" title="${noteKindLabel(n)}">${icon(k.icon)}</span>
         <span class="place-row__body">
           <span class="place-row__name">${n.title}</span>
+          ${places.length
+            ? html`<span class="note-place">${icon("pin")}<span>${places[0]}</span>${places.length > 1 ? html`<span class="note-place__more">+${places.length - 1}</span>` : ""}</span>`
+            : ""}
           ${url ? html`<span class="note-link">${icon("link")}<span>${linkSource(url)}</span></span>` : ""}
         </span>
       </button>

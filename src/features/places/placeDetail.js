@@ -2,6 +2,7 @@
  * placeDetail.js — 地點預覽（唯讀）。點列表上的地點會先開這個，
  * 在這裡可以直接「導航」或開參考連結（按鈕顯示來源，例如 Instagram、Threads）。
  * 底部是「刪除｜編輯」（關閉用右上角的 ×）。
+ * stacked（v0.12.0）：從筆記、活動的預覽點地點、而地點不在這趟清單時打開；只看內容，底部只有「返回」。
  */
 import { html } from "../../core/html.js";
 import { icon } from "../../core/icons.js";
@@ -12,7 +13,7 @@ import { safeUrl } from "../../core/html.js";
 import { categoryLabel, placeStore } from "../../data/places.js";
 import { openPlaceForm } from "./placeForm.js";
 
-export function openPlaceDetail({ place, onChanged }) {
+export function openPlaceDetail({ place, onChanged, stacked = false, backLabel = "返回" }) {
   const nav = navigationUrl(place);
   const website = safeUrl(place.website);
   const hasCoords = isValidLatLng(place.lat, place.lng);
@@ -40,12 +41,20 @@ export function openPlaceDetail({ place, onChanged }) {
       ${detailRow("座標", hasCoords ? `${place.lat}, ${place.lng}` : "尚未設定（不會顯示在 App 的地圖上）")}
       ${place.notes ? detailRow("備註", linkify(place.notes), true) : ""}
 
-      <div class="form__actions form__actions--spaced">
-        <button type="button" class="btn btn--danger" data-action="delete">刪除</button>
-        <button type="button" class="btn btn--primary" data-action="edit">編輯</button>
-      </div>
+      ${stacked
+        ? html`<div class="form__actions form__actions--spaced">
+            <button type="button" class="btn btn--ghost btn--block" data-action="back">${icon("back")}${backLabel}</button>
+          </div>`
+        : html`<div class="form__actions form__actions--spaced">
+            <button type="button" class="btn btn--danger" data-action="delete">刪除</button>
+            <button type="button" class="btn btn--primary" data-action="edit">編輯</button>
+          </div>`}
     `,
     onMount(panel, close) {
+      if (stacked) {
+        panel.querySelector('[data-action="back"]').addEventListener("click", close);
+        return;
+      }
       panel.querySelector('[data-action="delete"]').addEventListener("click", () => {
         if (!window.confirm(`確定要刪除「${place.name}」嗎？這個動作無法復原。`)) return;
         const result = placeStore.remove(place.id);

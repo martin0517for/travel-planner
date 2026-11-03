@@ -150,6 +150,9 @@ body.is-locked {
   justify-content: center;
   animation: fade-in 0.15s ease-out;
 }
+/* 第二層底部面板（v0.12.0，筆記／活動預覽裡點地點）：背景不再加深一次，下面那層還看得到 */
+.sheet-backdrop.is-stacked { background: transparent; animation: none; }
+.sheet-backdrop.is-stacked .sheet { box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.18); }
 .sheet {
   width: 100%;
   max-width: var(--max-width);

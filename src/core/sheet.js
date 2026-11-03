@@ -25,6 +25,10 @@
 import { html, render } from "./html.js";
 
 const openPages = []; // 目前開著的整頁表單（可能疊好幾層）
+// 目前開著的底部面板（v0.12.0：筆記、活動的預覽裡點地點，會再疊一層地點預覽）
+// 只有第一層鎖住背景、記下捲動位置；最後一層關掉才解鎖、捲回原位
+const openSheets = [];
+let lockedScrollY = 0;
 
 export function openSheet({ title, body, onMount }) {
   const wrapper = document.createElement("div");
@@ -59,15 +63,24 @@ export function openSheet({ title, body, onMount }) {
   } else {
     // ---- 底部面板 ----
     wrapper.className = "sheet-backdrop";
-    document.body.style.top = `-${scrollY}px`;
-    document.body.classList.add("is-locked");
+    if (!openSheets.length) {
+      lockedScrollY = scrollY;
+      document.body.style.top = `-${scrollY}px`;
+      document.body.classList.add("is-locked");
+    } else {
+      wrapper.classList.add("is-stacked"); // 第二層：背景不再加深一次
+    }
+    openSheets.push(wrapper);
     document.body.appendChild(wrapper);
     wrapper.addEventListener("click", (e) => {
       if (e.target === wrapper) close();
     });
   }
 
+  let closed = false;
   function close() {
+    if (closed) return;
+    closed = true;
     document.removeEventListener("keydown", onKey);
     wrapper.remove();
     if (isPage) {
@@ -75,15 +88,22 @@ export function openSheet({ title, body, onMount }) {
       const below = openPages[openPages.length - 1];
       if (below) below.hidden = false;
       else document.body.classList.remove("has-page-sheet");
+      window.scrollTo(0, scrollY);
     } else {
-      document.body.classList.remove("is-locked");
-      document.body.style.top = "";
+      openSheets.splice(openSheets.indexOf(wrapper), 1);
+      if (!openSheets.length) {
+        document.body.classList.remove("is-locked");
+        document.body.style.top = "";
+        window.scrollTo(0, lockedScrollY);
+      }
     }
-    window.scrollTo(0, scrollY);
     if (previousFocus && previousFocus.focus) previousFocus.focus({ preventScroll: true });
   }
   function onKey(e) {
-    if (e.key === "Escape") close();
+    // 疊了好幾層時，Esc 只關最上面那一層
+    if (e.key !== "Escape") return;
+    const top = openPages.length && isPage ? openPages[openPages.length - 1] : openSheets[openSheets.length - 1];
+    if (top === wrapper) close();
   }
 
   panel.querySelector(".sheet__close").addEventListener("click", close);

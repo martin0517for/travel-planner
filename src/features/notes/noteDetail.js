@@ -1,6 +1,7 @@
 /**
  * noteDetail.js — 筆記預覽（唯讀，底部面板，v0.9.0）。
  * 版面：類型徽章（完成時加「買了／看過／完成」）→「開啟連結」（顯示來源，例如 Instagram）
+ *       → 地點列表（v0.12.0：編號、分類圖示、名稱、地區，右邊「導航」；點地點 → 疊上地點預覽）
  *       → 內容（網址會變成連結）→ 底部「刪除｜編輯」。
  */
 import { html, safeUrl } from "../../core/html.js";
@@ -9,6 +10,7 @@ import { openSheet } from "../../core/sheet.js";
 import { linkify, linkSource } from "../../core/linkify.js";
 import { noteStore, noteKind, noteKindLabel } from "../../data/notes.js";
 import { openNoteForm } from "./noteForm.js";
+import { detailPlaceList, wirePlaceLinks } from "../places/placeLinks.js";
 
 /** 完成時的說法：筆記＝看過、行程＝去過、想買／紀念品＝買了、其他＝完成（見 data/notes.js） */
 export function doneLabel(kind) {
@@ -33,6 +35,13 @@ export function openNoteDetail({ note, onChanged }) {
           </div>`
         : ""}
 
+      ${note.placeIds.length
+        ? html`<div class="detail-row">
+            <div class="detail-row__label">地點</div>
+            ${detailPlaceList(note.placeIds)}
+          </div>`
+        : ""}
+
       <div class="detail-row">
         <div class="detail-row__label">內容</div>
         ${note.body.trim()
@@ -46,6 +55,7 @@ export function openNoteDetail({ note, onChanged }) {
       </div>
     `,
     onMount(panel, close) {
+      wirePlaceLinks(panel, { tripId: note.tripId, backLabel: "返回筆記" });
       panel.querySelector('[data-action="delete"]').addEventListener("click", () => {
         if (!window.confirm(`確定要刪除「${note.title}」嗎？這個動作無法復原。`)) return;
         const result = noteStore.remove(note.id);

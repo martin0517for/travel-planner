@@ -14,13 +14,11 @@
  * - 內容最多 3000 字，下方顯示字數；網址在預覽裡會變成連結。
  */
 import { html, raw, render } from "../../core/html.js";
-import { icon } from "../../core/icons.js";
 import { openSheet } from "../../core/sheet.js";
 import { clearLabel, wireClearButtons } from "../../core/fieldClear.js";
 import { activityStore, LIMITS, daysOf } from "../../data/activities.js";
 import { afterSaved } from "../schedule/scheduleLinks.js";
-import { placeStore, categoryLabel } from "../../data/places.js";
-import { openPlaceMultiPicker } from "../places/placeMultiPicker.js";
+import { mountPlaceListField } from "../places/placeLinks.js";
 
 // 所有文字欄位用同一組設定（同一種鍵盤，避免切換欄位時鍵盤高度不同而跳動）
 const TEXT_ATTRS = 'autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" type="search" enterkeyhint="done"';
@@ -29,7 +27,6 @@ export function openActivityForm({ tripId, activity = null, defaults = {}, note 
   const isEdit = Boolean(activity);
   const v = activity || { title: "", startDate: "", endDate: "", startTime: "", endTime: "", placeIds: [], notes: "", ...defaults };
   const theTripId = tripId || (activity && activity.tripId) || "";
-  let placeIds = [...v.placeIds]; // 目前選的地點（按「儲存」才會寫入）
 
   openSheet({
     title: isEdit ? "編輯活動" : "新增活動",
@@ -111,53 +108,13 @@ export function openActivityForm({ tripId, activity = null, defaults = {}, note 
       notes.addEventListener("input", paintCount);
       paintCount();
 
-      /** 地點區塊：已選的地點（▲▼ 調整順序、× 移除）＋「選擇地點」按鈕 */
-      function paintPlaces() {
-        render(
-          placesBox,
-          html`
-            <div class="field__legend">地點${placeIds.length ? html`<span class="act-count">${placeIds.length}</span>` : ""}</div>
-            ${placeIds.length
-              ? html`<ol class="act-places">${placeIds.map((id, i) => placeRow(id, i, placeIds.length))}</ol>`
-              : ""}
-            <button type="button" class="picker-btn" data-action="pick-places">
-              ${icon("plus")}
-              <span class="picker-btn__text"><span class="is-empty">${placeIds.length ? "增加或取消地點" : "選擇地點（可以選很多個）"}</span></span>
-            </button>
-          `
-        );
-        placesBox.querySelector('[data-action="pick-places"]').addEventListener("click", () =>
-          openPlaceMultiPicker({
-            title: "選擇活動的地點",
-            tripId: theTripId,
-            selectedIds: placeIds,
-            max: LIMITS.places,
-            onDone: (ids) => {
-              placeIds = ids;
-              paintPlaces();
-            },
-          })
-        );
-        placesBox.querySelectorAll("[data-move]").forEach((btn) =>
-          btn.addEventListener("click", () => {
-            const i = Number(btn.dataset.index);
-            const j = btn.dataset.move === "up" ? i - 1 : i + 1;
-            if (j < 0 || j >= placeIds.length) return;
-            [placeIds[i], placeIds[j]] = [placeIds[j], placeIds[i]];
-            paintPlaces();
-            // 重畫後把焦點留在同一個地點的同一顆按鈕上，連續點比較順
-            const again = placesBox.querySelector(`[data-move="${btn.dataset.move}"][data-index="${j}"]`);
-            if (again && !again.disabled) again.focus({ preventScroll: true });
-          })
-        );
-        placesBox.querySelectorAll("[data-remove]").forEach((btn) =>
-          btn.addEventListener("click", () => {
-            placeIds.splice(Number(btn.dataset.remove), 1);
-            paintPlaces();
-          })
-        );
-      }
-      paintPlaces();
+      // 地點區塊（v0.12.0 搬到 places/placeLinks.js，筆記也用同一套）
+      const places = mountPlaceListField(placesBox, {
+        tripId: theTripId,
+        pickerTitle: "選擇活動的地點",
+        placeIds: v.placeIds,
+        max: LIMITS.places,
+      });
 
       form.addEventListener("submit", (e) => {
         e.preventDefault();
@@ -168,7 +125,7 @@ export function openActivityForm({ tripId, activity = null, defaults = {}, note 
           endDate: endDate.value,
           startTime: el.startTime.value,
           endTime: el.endTime.value,
-          placeIds: placeIds.filter((id) => placeStore.get(id)), // 已刪除的地點不存
+          placeIds: places.get(), // 已刪除的地點不存
           notes: notes.value,
         };
         const result = isEdit ? activityStore.update(activity.id, input) : activityStore.create(theTripId, input);
@@ -186,25 +143,4 @@ export function openActivityForm({ tripId, activity = null, defaults = {}, note 
       panel.querySelector('[data-action="cancel"]').addEventListener("click", close);
     },
   });
-}
-
-function placeRow(id, index, total) {
-  const p = placeStore.get(id);
-  return html`
-    <li class="act-place">
-      <span class="act-place__num">${index + 1}</span>
-      ${p
-        ? html`<span class="place-row__icon cat--${p.category}" title="${categoryLabel(p.category)}">${icon(p.category)}</span>
-            <span class="act-place__body">
-              <span class="act-place__name">${p.name}</span>
-              ${p.area ? html`<span class="act-place__sub">${p.area}</span>` : ""}
-            </span>`
-        : html`<span class="act-place__body"><span class="act-place__name is-missing">（地點已刪除）</span></span>`}
-      <button type="button" class="act-place__btn" data-move="up" data-index="${index}" aria-label="往上移"
-              ${index === 0 ? html`disabled` : ""}>${icon("up")}</button>
-      <button type="button" class="act-place__btn" data-move="down" data-index="${index}" aria-label="往下移"
-              ${index === total - 1 ? html`disabled` : ""}>${icon("down")}</button>
-      <button type="button" class="act-place__btn" data-remove="${index}" aria-label="移除這個地點">${icon("remove")}</button>
-    </li>
-  `;
 }

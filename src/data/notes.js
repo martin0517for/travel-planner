@@ -12,6 +12,8 @@
  *   title      string   標題（必填），最多 60 字（欄位不叫 name，避免 iPhone 當成聯絡人表單）
  *   url        string   參考連結，一個，只接受 http/https；可空
  *   body       string   內容，最多 3000 字（網址在畫面上會變成連結）；可空
+ *   placeIds   string[] 地點 id（依使用者排的順序），最多 30 個、不重複（v0.12.0，同活動）
+ *                      存檔時自動加入這趟的「想去的地點」；但不算「已排入」（筆記不是行程，2026-11-03 使用者決定）
  *   done       boolean  完成（筆記、推薦＝看過、美食＝吃過、行程＝去過、想買／紀念品＝買了、其他＝完成）
  *   createdAt / updatedAt   列表新的排在上面（createdAt）
  *
@@ -20,11 +22,12 @@
  */
 import { readCollection, writeCollection, newId, isValidId } from "../core/storage.js";
 import { safeUrl } from "../core/html.js";
+import { tripPlaceStore } from "./tripPlaces.js";
 
 const COLLECTION = "notes";
 const STORAGE_FAIL = "儲存失敗：手機本機空間不足，或瀏覽器不允許儲存（例如無痕模式）";
 
-export const LIMITS = { title: 60, url: 500, body: 3000, customKind: 10 };
+export const LIMITS = { title: 60, url: 500, body: 3000, customKind: 10, places: 30 };
 
 // 順序＝表單選項與篩選列的順序（v0.10.1 使用者決定；v0.10.3 美食排在筆記後面；v0.11.0 推薦排在筆記後面）
 export const NOTE_KINDS = [
@@ -56,6 +59,16 @@ export function noteKindLabel(note) {
   return (note.kind === "other" && note.customKind) || noteKind(note.kind).label;
 }
 
+function cleanPlaceIds(list) {
+  if (!Array.isArray(list)) return [];
+  const out = [];
+  for (const id of list) {
+    if (isValidId(id) && !out.includes(id)) out.push(id);
+    if (out.length >= LIMITS.places) break;
+  }
+  return out;
+}
+
 function cleanNote(raw) {
   const kind = KIND_VALUES.has(raw.kind) ? raw.kind : "note";
   return {
@@ -64,7 +77,13 @@ function cleanNote(raw) {
     title: cleanText(raw.title, LIMITS.title),
     url: cleanUrl(raw.url),
     body: typeof raw.body === "string" ? raw.body.slice(0, LIMITS.body) : "",
+    placeIds: cleanPlaceIds(raw.placeIds), // v0.12.0 以前的筆記沒有 → []
   };
+}
+
+/** 筆記的地點自動加入這趟的「想去的地點」清單（v0.12.0，跟活動一樣） */
+function addPlacesToTripList(note) {
+  if (note.placeIds.length) tripPlaceStore.addMany(note.tripId, note.placeIds);
 }
 
 export function normalizeNote(raw) {
@@ -100,6 +119,7 @@ export function validateNoteInput(input) {
   else if (url && !safeUrl(url)) errors.push("參考連結需以 http:// 或 https:// 開頭");
   if (typeof input.body === "string" && input.body.length > LIMITS.body) errors.push(`內容最多 ${LIMITS.body} 字`);
   if (cleanText(input.customKind, LIMITS.customKind + 1).length > LIMITS.customKind) errors.push(`自訂類型最多 ${LIMITS.customKind} 字`);
+  if (Array.isArray(input.placeIds) && input.placeIds.length > LIMITS.places) errors.push(`地點最多 ${LIMITS.places} 個`);
   return { errors, value: cleanNote(input) };
 }
 
@@ -137,6 +157,7 @@ export const noteStore = {
     const all = loadAll();
     all.push(note);
     if (!save(all)) return { ok: false, errors: [STORAGE_FAIL] };
+    addPlacesToTripList(note);
     return { ok: true, note };
   },
 
@@ -148,6 +169,7 @@ export const noteStore = {
     if (index === -1) return { ok: false, errors: ["找不到這則筆記"] };
     all[index] = { ...all[index], ...value, updatedAt: new Date().toISOString() };
     if (!save(all)) return { ok: false, errors: [STORAGE_FAIL] };
+    addPlacesToTripList(all[index]);
     return { ok: true, note: all[index] };
   },
 
@@ -168,6 +190,11 @@ export const noteStore = {
     if (next.length === all.length) return { ok: false, errors: ["找不到這則筆記"] };
     if (!save(next)) return { ok: false, errors: [STORAGE_FAIL] };
     return { ok: true };
+  },
+
+  /** 有哪些筆記用到這個地點（刪除地點前檢查用，v0.12.0） */
+  usingPlace(placeId) {
+    return loadAll().filter((n) => n.placeIds.includes(placeId));
   },
 
   /** 刪除旅程時呼叫 */
