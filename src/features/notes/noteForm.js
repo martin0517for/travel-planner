@@ -182,5 +182,6 @@ function wireReadButton(panel, form, paintCount) {
 
 /** 讀到之後的提示文字（貼上連結頁面也用） */
 export function readNotice(result) {
-  return `已從 ${SOURCE_LABEL[result.source]}${result.author ? ` @${result.author}` : ""} 帶入標題和內容，確認後按「新增」。`;
+  const what = result.topic ? "標題（主題標籤）和內容" : "標題和內容"; // v0.11.3
+  return `已從 ${SOURCE_LABEL[result.source]}${result.author ? ` @${result.author}` : ""} 帶入${what}，確認後按「新增」。`;
 }

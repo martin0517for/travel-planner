@@ -10,8 +10,10 @@
  *   readableSource(url)   "instagram"｜"threads"｜""（轉接服務讀得了的網址才回傳來源）
  *   cleanLink(url)        IG／Threads 網址去掉 ?igsh= 這類追蹤參數
  *   linkKey(url)          比對「同一篇」用的鍵（重複連結檢查）
- *   readLink(url, signal) 呼叫轉接服務 → { ok, source, author, text, url } 或 { ok: false, error }
- *   organizeNote(data)    讀到的結果 → { title, url, body }
+ *   readLink(url, signal) 呼叫轉接服務 → { ok, source, author, text, url, topic } 或 { ok: false, error }
+ *   organizeNote(data)    讀到的結果 → { title, url, body, fromTopic }
+ *
+ * v0.11.3（2026-11-03）：Threads 有主題標籤（帳號右邊的「› 東京林檎製飴所」）時，標題用主題標籤。
  *
  * 資安：
  *   - 轉接服務回傳的內容一律當成不可信：檢查型別、限制長度，網址只收 IG／Threads 的 https；
@@ -25,7 +27,7 @@ import { safeUrl } from "./html.js";
 export const LINK_READER_API = "https://tp-link-reader.martin0517for.workers.dev/api";
 const TIMEOUT_MS = 10000; // 超過 10 秒當作讀不到（C-2）
 const MAX_RESPONSE = 50000; // 回應超過這個長度就不處理
-const LIMITS = { title: 60, body: 3000, author: 60 };
+const LIMITS = { title: 60, body: 3000, author: 60, topic: 60 };
 
 export const SOURCE_LABEL = { instagram: "Instagram", threads: "Threads" };
 
@@ -84,6 +86,12 @@ export function linkKey(url) {
 
 const str = (v, max) => (typeof v === "string" ? [...v].slice(0, max).join("") : "");
 
+/** 主題標籤：一行文字，去掉控制字元與不可見字元（零寬、方向控制） */
+const oneLine = (v, max) =>
+  typeof v === "string"
+    ? str(v.replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2060-\u2069\ufeff]/g, " ").replace(/\s+/g, " ").trim(), max)
+    : "";
+
 /** 呼叫轉接服務。signal：使用者按「取消讀取」時中止 */
 export async function readLink(url, signal) {
   const source = readableSource(url);
@@ -115,6 +123,7 @@ export async function readLink(url, signal) {
       author: str(d.author, LIMITS.author).replace(/[^A-Za-z0-9._]/g, ""),
       text: str(d.text, 5000),
       url: back,
+      topic: oneLine(d.topic, LIMITS.topic), // 舊版轉接服務沒有這個欄位 → ""
     };
   } catch {
     return { ok: false, error: controller.signal.aborted ? "讀取逾時或已取消" : "連線失敗" };
@@ -152,8 +161,18 @@ function cutSentence(title) {
   return title;
 }
 
+/** 有主題標籤 → 標題＝主題標籤（2026-11-03 使用者決定）；沒有 → 照 T-1～T-3。內容不變 */
 export function organizeNote(d) {
   const text = String(d.text || "").replace(/\r/g, "").trim();
+  const topic = typeof d.topic === "string" ? d.topic.trim() : "";
+  if (topic) {
+    return {
+      title: [...topic].slice(0, LIMITS.title).join(""),
+      url: d.url,
+      body: [...text].slice(0, LIMITS.body).join(""),
+      fromTopic: true,
+    };
+  }
   const lines = text.split("\n").map((s) => s.trim()).filter(meaningful);
   let title = lines.length ? withoutTags(lines[0]) : "";
   if (title && lines.length > 1 && wordCount(lines[0]) <= 3) title = `${title}｜${withoutTags(lines[1])}`; // T-2
@@ -166,5 +185,6 @@ export function organizeNote(d) {
     title: [...title].slice(0, LIMITS.title).join(""),
     url: d.url,
     body: [...text].slice(0, LIMITS.body).join(""),
+    fromTopic: false,
   };
 }

@@ -4,7 +4,8 @@
 //       所以由這個轉接服務代讀「公開貼文的文字」。只負責「讀」，整理標題的規則放在 App 裡。
 //
 // 介面：GET /api?url=<IG 或 Threads 貼文網址>
-//   成功：{ ok: true,  source: "instagram"|"threads", author, text, url, via }
+//   成功：{ ok: true,  source: "instagram"|"threads", author, text, url, via, topic }
+//         topic：Threads 的主題標籤（例如「東京林檎製飴所」），沒有就 ""；IG 一律 ""（2026-11-03 加）
 //   失敗：{ ok: false, source, url, error }
 //
 // 資安（倉庫是公開的，這裡不放任何密碼）：
@@ -20,6 +21,7 @@
 const APP_ORIGIN = "https://martin0517for.github.io";
 const TIMEOUT_MS = 8000; // 每次對外讀取的時間上限
 const MAX_HTML = 800000; // 最多讀前 800 KB
+const TOPIC_TIMEOUT_MS = 3000; // Threads 嵌入版（只為了主題標籤）最多等 3 秒，超過就當作沒有，不拖累 App 的 10 秒上限
 
 const UA_BOT = "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)";
 const UA_BROWSER =
@@ -104,13 +106,38 @@ async function readPost(p) {
     const author = (meta(r.html, "og:title").match(/@([A-Za-z0-9._]+)/) || [])[1] || "";
     const ogUrl = meta(r.html, "og:url");
     const url = ogUrl && allowedHost(ogUrl) ? ogUrl : r.url && allowedHost(r.url) ? r.url : p.url;
-    if (text) return done(p.source, author, text, url, "og");
+    if (text) {
+      const res = done(p.source, author, text, url, "og");
+      res.topic = await threadsTopic(res.url);
+      return res;
+    }
   }
   return { ok: false, source: p.source, url: p.url, error: "Threads 沒有回應內容" };
 }
 
+/**
+ * Threads 主題標籤（帳號右邊的「› 東京林檎製飴所」，2026-11-03 加）。
+ * 一般網址的頁面裡沒有，只有嵌入版有；嵌入版畫面上的字會被截斷（「東京林檎製�...」），
+ * 完整名稱在連結的 q= 參數裡（href 含 serp_type=tags）。
+ * 讀不到、找不到、格式不對一律回傳 ""，不影響內文。
+ */
+async function threadsTopic(postUrl) {
+  const m = String(postUrl || "").match(/^https:\/\/www\.threads\.(?:net|com)\/(@[A-Za-z0-9._]{1,30})\/post\/([A-Za-z0-9_-]{5,40})/);
+  if (!m) return "";
+  const e = await get(`https://www.threads.com/${m[1]}/post/${m[2]}/embed`, UA_BROWSER, TOPIC_TIMEOUT_MS);
+  if (!e.html) return "";
+  const href = (e.html.match(/<a[^>]+href="([^"]*serp_type=tags[^"]*)"/i) || [])[1];
+  if (!href) return "";
+  try {
+    const q = new URL(decode(href), "https://www.threads.com").searchParams.get("q") || "";
+    return clip(q.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " "), 60);
+  } catch {
+    return "";
+  }
+}
+
 function done(source, author, text, url, via) {
-  return { ok: true, source, author: clip(author, 60), text: clip(text, 5000), url: cleanUrl(url), via };
+  return { ok: true, source, author: clip(author, 60), text: clip(text, 5000), url: cleanUrl(url), via, topic: "" };
 }
 
 /** 去掉查詢參數與 hash（?igsh=、?xmt= 這類追蹤參數） */
@@ -130,12 +157,12 @@ function clip(s, n) {
   return [...String(s || "").replace(INVISIBLE, "").trim()].slice(0, n).join("");
 }
 
-async function get(href, ua) {
+async function get(href, ua, timeout = TIMEOUT_MS) {
   try {
     const res = await fetch(href, {
       headers: { "User-Agent": ua, "Accept-Language": "zh-TW,zh;q=0.9,ja;q=0.8,en;q=0.7" },
       redirect: "follow",
-      signal: AbortSignal.timeout(TIMEOUT_MS),
+      signal: AbortSignal.timeout(timeout),
     });
     if (res.status !== 200 || !allowedHost(res.url) || res.url.includes("/accounts/login")) return { status: res.status };
     return { status: 200, url: res.url, html: (await res.text()).slice(0, MAX_HTML) };

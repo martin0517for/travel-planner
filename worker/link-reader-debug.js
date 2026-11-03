@@ -1,7 +1,8 @@
 // link-reader-debug.js — 除錯用轉接服務（Cloudflare Worker）。平常不部署。
 //
 // 用途：IG／Threads 改了規則、正式版（link-reader.js）讀不到時，臨時部署這份查原因，查完就刪掉。
-// 來源：2026-11-02 可行性測試用的 link-test（測試版已於 2026-11-03 刪除），內容沒有改。
+// 來源：2026-11-02 可行性測試用的 link-test（測試版已於 2026-11-03 刪除）。
+// 2026-11-03（v0.11.3）：加上 &find=文字、Threads「方式4 嵌入版」、/api 回傳 topic（主題標籤），跟正式版一致。
 //
 // 使用方式：
 //   1. Cloudflare 建立一個新的 Worker（例如 tp-link-debug），貼上這份。
@@ -9,7 +10,10 @@
 //   3. 用 iPhone 打開：
 //        /test?k=密碼            測試頁（貼上連結 → 顯示整理結果）
 //        /api?k=密碼&url=網址     跟正式版類似的介面：回傳 { ok, source, author, text, url }
-//        /?k=密碼&url=網址        除錯：三種讀法的原始結果（狀態碼、轉址後網址、og:title、og:description、嵌入版內文）
+//        /?k=密碼&url=網址        除錯：各種讀法的原始結果（狀態碼、轉址後網址、og:title、og:description、嵌入版內文）；
+//                                Threads 多一個「方式4 Threads 嵌入版」（threads.com、threads.net 各讀一次，顯示畫面上的文字）
+//        /?k=密碼&url=網址&find=文字  另外在每種讀法的原始網頁裡找這段文字（一般寫法和 JSON 的 \uXXXX 寫法都找，
+//                                最多 6 處），回傳前後各 150 字（「找到的位置」）
 //   4. 查完後刪除這個 Worker。
 
 const KEY = 'CHANGE-ME'; // 部署前改成自己的密碼（不要 commit 真的密碼）
@@ -28,7 +32,7 @@ export default {
     if (!parsed) return json({ ok: false, error: '只接受 IG、Threads 的 https 網址' }, 400);
 
     if (u.pathname === '/api') return json(await readPost(parsed));
-    return json(await debug(parsed));
+    return json(await debug(parsed, String(u.searchParams.get('find') || '').slice(0, 100)));
   },
 };
 
@@ -73,9 +77,24 @@ async function readPost(p) {
     const text = meta(r.html, 'og:description');
     const author = (meta(r.html, 'og:title').match(/@([A-Za-z0-9._]+)/) || [])[1] || '';
     const url = meta(r.html, 'og:url') || p.url;
-    if (text) return done(p.source, author, text, cleanUrl(url), '一般網址');
+    if (text) {
+      const res = done(p.source, author, text, cleanUrl(url), '一般網址');
+      res.topic = topicFrom((await get(embedOf(res.url) || 'about:blank', UA_BROWSER)).html || '');
+      return res;
+    }
   }
   return { ok: false, source: p.source, url: p.url, error: 'Threads 沒有回應內容' };
+}
+
+// Threads 主題標籤：嵌入版畫面上的字會被截斷，完整名稱在連結的 q= 裡（serp_type=tags）
+function embedOf(postUrl, host = 'threads.com') {
+  const m = String(postUrl || '').match(/^https:\/\/www\.threads\.(?:net|com)\/(@[A-Za-z0-9._]+)\/post\/([A-Za-z0-9_-]+)/);
+  return m ? `https://www.${host}/${m[1]}/post/${m[2]}/embed` : '';
+}
+function topicFrom(html) {
+  const href = (html.match(/<a[^>]+href="([^"]*serp_type=tags[^"]*)"/i) || [])[1];
+  if (!href) return '';
+  try { return clip(new URL(decode(href), 'https://www.threads.com').searchParams.get('q') || '', 60); } catch { return ''; }
 }
 
 function done(source, author, text, url, via) {
@@ -96,18 +115,54 @@ async function get(href, ua) {
   }
 }
 
-// ---- 除錯：三種讀法的原始結果 ----
-async function debug(p) {
+// ---- 除錯：各種讀法的原始結果 ----
+async function debug(p, find) {
   const tries = [['方式1 一般網址＋預覽機器人', p.url, UA_BOT]];
   if (p.embed) tries.push(['方式2 嵌入版', p.embed, UA_BROWSER]);
   tries.push(['方式3 一般網址＋iPhone瀏覽器', p.url, UA_BROWSER]);
   const results = [];
+  let postUrl = '';
   for (const [label, href, ua] of tries) {
     const r = await get(href, ua);
     const h = r.html || '';
-    results.push({ 方式: label, 狀態碼: r.status, 最後網址: r.url, og_title: meta(h, 'og:title'), og_description: meta(h, 'og:description'), 嵌入版內文: text_(pick(h, /class="Caption"[^>]*>([\s\S]*?)<div class="CaptionComments/i)).slice(0, 1500), 錯誤: r.error });
+    if (!postUrl && p.source === 'threads') postUrl = cleanUrl(meta(h, 'og:url') || r.url || '');
+    const row = { 方式: label, 狀態碼: r.status, 最後網址: r.url, 內容長度: h.length, og_title: meta(h, 'og:title'), og_description: meta(h, 'og:description'), 嵌入版內文: text_(pick(h, /class="Caption"[^>]*>([\s\S]*?)<div class="CaptionComments/i)).slice(0, 1500), 錯誤: r.error };
+    if (find) row.找到的位置 = findAround(h, find);
+    results.push(row);
   }
-  return { 網址: p.url, 結果: results };
+  // 方式4：Threads 嵌入版（主題標籤只有這裡有）
+  if (p.source === 'threads') {
+    for (const host of ['threads.com', 'threads.net']) {
+      const href = embedOf(postUrl || p.url, host);
+      if (!href) { results.push({ 方式: `方式4 Threads 嵌入版（${host}）`, 錯誤: '找不到 /@帳號/post/代碼（分享短網址要先讀到正式網址）' }); continue; }
+      const r = await get(href, UA_BROWSER);
+      const h = r.html || '';
+      const row = { 方式: `方式4 Threads 嵌入版（${host}）`, 網址: href, 狀態碼: r.status, 最後網址: r.url, 內容長度: h.length, 主題標籤: topicFrom(h), 畫面上的文字: visibleText(h).slice(0, 1500), 錯誤: r.error };
+      if (find) row.找到的位置 = findAround(h, find);
+      results.push(row);
+    }
+  }
+  return { 網址: p.url, 找: find || undefined, 結果: results };
+}
+
+/** 去掉 script／style 後的文字 */
+function visibleText(h) {
+  return text_(h.replace(/<(script|style)[\s\S]*?<\/\1>/gi, ' ')).replace(/\s*\n\s*/g, '\n');
+}
+
+/** 在原始網頁裡找一段文字（一般寫法和 \uXXXX 寫法），最多 6 處，前後各 150 字 */
+function findAround(h, needle) {
+  if (!h) return '沒有內容';
+  const esc = up => [...needle].map(c => c.charCodeAt(0) < 128 ? c : c.split('').map(x => { const hx = x.charCodeAt(0).toString(16).padStart(4, '0'); return '\\u' + (up ? hx.toUpperCase() : hx); }).join('')).join('');
+  const out = [];
+  for (const key of new Set([needle, esc(false), esc(true)])) {
+    let i = h.indexOf(key);
+    while (i >= 0 && out.length < 6) {
+      out.push(h.slice(Math.max(0, i - 150), i + key.length + 150));
+      i = h.indexOf(key, i + key.length);
+    }
+  }
+  return out.length ? out : '沒有找到';
 }
 
 // ---- 文字處理 ----
