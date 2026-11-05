@@ -13,7 +13,7 @@
  *   parseGoogleMapsUrl(url)  → { name, address, coords }（讀不到的欄位是 "" 或 null）
  *   readMapLink(url, signal) → { ok: true, name, address, coords } 或 { ok: false, error }
  *
- * 規則（E-2）：名稱裡有逗號時，逗號前＝名稱、逗號後＝地址（`?q=店名, 地址` 這種格式）。
+ * 規則：名稱和地址分開（見 splitNameAddress；v0.13.2 先找數字或 〒 開頭的地址，找不到才用逗號）。
  * 只有座標的圖釘（/place/35.71,139.79）當作沒有名稱。
  *
  * 資安：
@@ -82,13 +82,30 @@ function decodePart(seg) {
   }
 }
 
-/** 「店名, 地址」→ { name, address }；只有座標、沒有任何文字的 → 空的 */
+/**
+ * 「店名 地址」→ { name, address }；只有座標、沒有任何文字的 → 空的
+ * v0.13.2（2026-11-06 實機連結）：短網址展開後常是 `?q=明治神宮 1-1 Yoyogikamizonocho, Shibuya, …`，
+ *   名稱和地址之間只有空格。先找「第一個以數字或 〒 開頭的詞」（前面至少要有一個詞）當地址的開頭；
+ *   找不到才用逗號：逗號前＝名稱、逗號後＝地址。
+ *   已知限制：店名中間有數字（Hotel 1899 Tokyo）會切太早。
+ */
 function splitNameAddress(text) {
   const s = oneLine(text, 500);
   if (!s || parseCoordinates(s)) return { name: "", address: "" };
-  const i = s.search(/[,，]/);
-  const name = oneLine(i >= 0 ? s.slice(0, i) : s, LIMITS.name);
-  const address = i >= 0 ? oneLine(s.slice(i + 1), LIMITS.address) : "";
+  let name = "";
+  let address = "";
+  const words = s.split(" ");
+  const at = words.findIndex((w, i) => i > 0 && /^[0-9０-９〒]/.test(w));
+  if (at > 0) {
+    name = words.slice(0, at).join(" ").replace(/[,，]+$/, "");
+    address = words.slice(at).join(" ");
+  } else {
+    const i = s.search(/[,，]/);
+    name = i >= 0 ? s.slice(0, i) : s;
+    address = i >= 0 ? s.slice(i + 1) : "";
+  }
+  name = oneLine(name, LIMITS.name);
+  address = oneLine(address, LIMITS.address);
   if (!/[\p{L}\p{N}]/u.test(name) || parseCoordinates(name)) return { name: "", address: "" };
   return { name, address: /[\p{L}\p{N}]/u.test(address) ? address : "" };
 }
