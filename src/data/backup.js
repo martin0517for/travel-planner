@@ -22,6 +22,7 @@ import { normalizeActivity } from "./activities.js";
 import { normalizePlan } from "./dayPlans.js";
 import { normalizeTripPlace } from "./tripPlaces.js";
 import { normalizeNote } from "./notes.js";
+import { migrateItemNotes } from "./placeNotes.js";
 import { normalizeSettings } from "./settings.js";
 
 export const MAX_FILE_BYTES = 5 * 1024 * 1024;
@@ -169,6 +170,7 @@ export function restoreBackup(data) {
       return fail("寫入失敗（手機空間不足？），已還原成原本的資料");
     }
   }
+  migrateItemNotes(); // v0.13.0：舊備份的行程項目備註搬進「這趟的備註」
   return { ok: true };
 }
 

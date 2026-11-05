@@ -10,6 +10,11 @@
  * 其他欄位：時間（只用來顯示）、交通方式（怎麼到下一站，快速選項＋文字）、備註。
  * 每人費用：資料預留，表單不顯示（編輯時保留原本的值）。
  *
+ * v0.13.0（2026-11-05 使用者決定 D-4～D-6）：選了地點時，「備註」欄改成「這趟的備註」——
+ *   跟清單「想去的地點」同一份（data/placeNotes.js），自動帶入、存檔時一起改；同一地點排在別天也會變。
+ *   換地點：欄位換成新地點的備註，已經改過內容會先問「要捨棄剛剛改的備註嗎？」。
+ *   清除地點：變回項目自己的備註。
+ *
  * 新項目放在「預設位置」：有時間就依時間插入，沒時間放最下面（入住卡之前）。
  *
  * 新增時最上面有分段切換「行程項目｜總覽項目」（v0.8.2 活動、v0.8.3 加上航班與住宿，使用者決定）。
@@ -24,6 +29,7 @@ import { dayPlanStore, LIMITS, ITEM_KINDS, TRANSPORT_PICKS } from "../../data/da
 import { placeStore } from "../../data/places.js";
 import { mountPlaceField } from "../places/placePicker.js";
 import { tripDays, orderWithNewItem } from "./timeline.js";
+import { tripPlaceNotes, setTripPlaceNotes, mergeNotes } from "../../data/placeNotes.js";
 import { mountOverviewPane } from "./overviewPane.js";
 
 // 所有文字欄位用同一組設定（同一種鍵盤，避免切換欄位時鍵盤高度不同而跳動）
@@ -42,6 +48,10 @@ export function openItemForm({ trip, day, item = null, onSaved } = {}) {
   const v = item || { placeId: "", text: "", kind: "other", time: "", transport: "", notes: "" };
   const info = tripDays(trip);
   let placeId = v.placeId;
+  // 沒選地點時用的「項目自己的備註」；有地點時用這趟的備註（舊資料還沒搬的，先合併在一起顯示）
+  let ownNotes = v.placeId ? "" : v.notes;
+  const notesFor = (id) => (id ? (id === v.placeId ? mergeNotes(tripPlaceNotes(trip.id, id), v.notes) : tripPlaceNotes(trip.id, id)) : ownNotes);
+  let loadedNotes = notesFor(placeId);
 
   openSheet({
     title: isEdit ? "編輯行程" : "新增行程",
@@ -103,11 +113,12 @@ export function openItemForm({ trip, day, item = null, onSaved } = {}) {
         </div>
 
         <div class="field">
-          <label for="it-notes">備註</label>
+          <label for="it-notes" data-notes-label>備註</label>
           <textarea id="it-notes" name="itNotes" rows="4" maxlength="${LIMITS.notes}"
                     autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
-                    placeholder="例如：停留 2 小時、要先預約、攻略網址">${v.notes}</textarea>
+                    placeholder="例如：要先預約、營業時間、攻略網址">${loadedNotes}</textarea>
           <p class="field__hint field__hint--tight" data-count></p>
+          <p class="field__hint field__hint--tight" data-notes-hint></p>
         </div>
 
         <div class="form__errors" role="alert" hidden></div>
@@ -129,14 +140,33 @@ export function openItemForm({ trip, day, item = null, onSaved } = {}) {
       const notes = form.elements.itNotes;
       const count = panel.querySelector("[data-count]");
 
-      /** 有沒有選地點，決定文字欄的提示、是否顯示類型 */
+      const notesLabel = panel.querySelector("[data-notes-label]");
+      const notesHint = panel.querySelector("[data-notes-hint]");
+
+      /** 這個地點還排在哪幾天（同一份備註會一起變） */
+      function otherDays(id) {
+        const days = dayPlanStore
+          .listByTrip(trip.id)
+          .filter((p) => p.items.some((it) => it.placeId === id && (!item || it.id !== item.id)))
+          .map((p) => `Day ${p.day}`);
+        return [...new Set(days)];
+      }
+
+      /** 有沒有選地點，決定文字欄的提示、是否顯示類型、備註欄是哪一份 */
       function syncPlace() {
         const has = Boolean(placeId);
         kindBox.hidden = has;
         textInput.placeholder = has ? "補充說明（可不填）" : "例如：搭 JR 到京都、午餐（附近找）";
         textHint.textContent = has
-          ? "會顯示在地點名稱下方，例如：買限定御守"
+          ? "會顯示在地點名稱下方，只屬於這一天，例如：停留 1 小時、買限定御守"
           : "沒有選地點時，這就是項目的名稱（不會出現在地圖上）";
+        notesLabel.textContent = has ? "這趟的備註" : "備註";
+        if (has) {
+          const days = otherDays(placeId);
+          notesHint.textContent = `跟清單「想去的地點」同一份，改這裡會一起改${days.length ? `（${days.join("、")} 也會變）` : ""}`;
+        } else {
+          notesHint.textContent = "";
+        }
       }
 
       mountPlaceField(panel.querySelector("[data-place]"), {
@@ -148,7 +178,15 @@ export function openItemForm({ trip, day, item = null, onSaved } = {}) {
         tripId: trip.id,
         value: placeId,
         onChange: (id) => {
+          if (!placeId) ownNotes = notes.value; // 從「沒地點」換成有地點：先記住自己的備註
+          const next = notesFor(id);
+          const edited = notes.value !== loadedNotes && notes.value.trim() !== "";
+          if (!edited || next === notes.value || window.confirm("要捨棄剛剛改的備註嗎？\n（按「取消」會保留你打的內容，存檔時寫進新地點這趟的備註）")) {
+            notes.value = next;
+          }
+          loadedNotes = next;
           placeId = id;
+          paintCount();
           syncPlace();
         },
       });
@@ -160,7 +198,9 @@ export function openItemForm({ trip, day, item = null, onSaved } = {}) {
         })
       );
 
-      const paintCount = () => (count.textContent = `${notes.value.length} / ${LIMITS.notes}`);
+      function paintCount() {
+        count.textContent = `${notes.value.length} / ${LIMITS.notes}`;
+      }
       notes.addEventListener("input", paintCount);
       paintCount();
 
@@ -170,13 +210,19 @@ export function openItemForm({ trip, day, item = null, onSaved } = {}) {
         const toDay = Number(el.day.value) || day;
         const target = info.days.find((d) => d.day === toDay) || { day: toDay, date: "" };
         const kindInput = form.querySelector('input[name="kind"]:checked');
+        const usePlace = placeId && placeStore.get(placeId) ? placeId : ""; // 已刪除的地點不存
+        if (usePlace && notes.value.length > LIMITS.notes) {
+          render(errorsBox, html`<div>這趟的備註最多 ${LIMITS.notes} 字</div>`);
+          errorsBox.hidden = false;
+          return;
+        }
         const input = {
-          placeId: placeId && placeStore.get(placeId) ? placeId : "", // 已刪除的地點不存
+          placeId: usePlace,
           text: textInput.value,
           kind: kindInput ? kindInput.value : "other",
           time: el.time.value,
           transport: el.transport.value,
-          notes: notes.value,
+          notes: usePlace ? "" : notes.value, // 有地點：備註存在這趟的備註，不存在項目上
         };
         let result;
         if (!isEdit) {
@@ -192,6 +238,10 @@ export function openItemForm({ trip, day, item = null, onSaved } = {}) {
           render(errorsBox, html`${result.errors.map((err) => html`<div>${err}</div>`)}`);
           errorsBox.hidden = false;
           return;
+        }
+        if (usePlace) {
+          const r = setTripPlaceNotes(trip.id, usePlace, notes.value);
+          if (!r.ok) window.alert(`行程已儲存，但這趟的備註沒有存到：${r.errors.join("、")}`);
         }
         close();
         if (onSaved) onSaved(result.item, target.day);

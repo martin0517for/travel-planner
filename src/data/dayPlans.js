@@ -36,6 +36,8 @@
  *   time         string   "HH:mm" 或 ""（只用來顯示，不會自動重排）
  *   transport    string   交通方式（怎麼到下一站），最多 30 字
  *   notes        string   備註，最多 1000 字（網址在畫面上會變成連結）
+ *                         v0.13.0：有地點的項目不用這欄，改用「這趟的備註」（data/placeNotes.js）；
+ *                         只有舊資料搬不過去（合起來超過 1000 字）時才會留著
  *   costAmount   number|null  每人費用（資料預留，畫面目前不顯示）
  *   costCurrency string   幣別，例如 "JPY"（資料預留）
  *   createdAt / updatedAt
@@ -211,6 +213,28 @@ function addToTripList(tripId, item) {
 }
 
 export const dayPlanStore = {
+  /** 所有旅程的 DayPlan（v0.13.0 舊資料搬移用） */
+  listAll() {
+    return loadAll();
+  },
+
+  /** 清掉這些項目自己的備註（v0.13.0 搬進「這趟的備註」之後） */
+  clearItemNotes(tripId, itemIds) {
+    const ids = new Set(itemIds);
+    const all = loadAll();
+    let changed = false;
+    for (const plan of all.filter((p) => p.tripId === tripId)) {
+      for (const it of plan.items) {
+        if (ids.has(it.id) && it.notes) {
+          it.notes = "";
+          changed = true;
+        }
+      }
+    }
+    if (changed && !save(all)) return { ok: false, errors: [STORAGE_FAIL] };
+    return { ok: true };
+  },
+
   /** 這趟旅程的所有 DayPlan，依第幾天排列 */
   listByTrip(tripId) {
     return loadAll()

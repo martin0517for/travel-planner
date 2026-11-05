@@ -29,6 +29,12 @@ const openPages = []; // 目前開著的整頁表單（可能疊好幾層）
 // 只有第一層鎖住背景、記下捲動位置；最後一層關掉才解鎖、捲回原位
 const openSheets = [];
 let lockedScrollY = 0;
+const openClosers = new Set(); // 所有開著的彈出畫面的 close()（closeAllSheets 用）
+
+/** 關掉所有開著的彈出畫面（v0.12.1：疊上來的筆記預覽按「到筆記頁編輯」時） */
+export function closeAllSheets() {
+  [...openClosers].reverse().forEach((close) => close());
+}
 
 export function openSheet({ title, body, onMount }) {
   const wrapper = document.createElement("div");
@@ -81,6 +87,7 @@ export function openSheet({ title, body, onMount }) {
   function close() {
     if (closed) return;
     closed = true;
+    openClosers.delete(close);
     document.removeEventListener("keydown", onKey);
     wrapper.remove();
     if (isPage) {
@@ -106,6 +113,7 @@ export function openSheet({ title, body, onMount }) {
     if (top === wrapper) close();
   }
 
+  openClosers.add(close);
   panel.querySelector(".sheet__close").addEventListener("click", close);
   document.addEventListener("keydown", onKey);
 

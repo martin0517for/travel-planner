@@ -6,8 +6,9 @@
  *   ＋「選擇地點」按鈕（開多選畫面 placeMultiPicker.js）。回傳 { get() } 取得目前的地點 id。
  *   原本寫在 activityForm.js，筆記也要用，搬到這裡（畫面沒有改）。
  *
- * detailPlaceList(placeIds)
+ * detailPlaceList(placeIds, { clickable })
  *   預覽裡的地點列表：每列是一顆按鈕（點了看地點預覽，名稱右邊有 ›），右邊「導航」。
+ *   clickable＝false（v0.12.1，疊上來的筆記預覽）：只顯示、不能點，導航照常。
  *   地點已刪除的顯示「（地點已刪除）」、不能點。
  *
  * wirePlaceLinks(panel, { tripId, backLabel })
@@ -106,11 +107,11 @@ function formRow(id, index, total) {
 
 // ---- 預覽 ----
 
-export function detailPlaceList(placeIds) {
-  return html`<ol class="act-places act-places--detail">${placeIds.map((id, i) => detailRow(placeStore.get(id), i))}</ol>`;
+export function detailPlaceList(placeIds, { clickable = true } = {}) {
+  return html`<ol class="act-places act-places--detail">${placeIds.map((id, i) => detailRow(placeStore.get(id), i, clickable))}</ol>`;
 }
 
-function detailRow(place, index) {
+function detailRow(place, index, clickable = true) {
   if (!place) {
     return html`
       <li class="act-place">
@@ -120,6 +121,21 @@ function detailRow(place, index) {
     `;
   }
   const nav = navigationUrl(place);
+  if (!clickable) {
+    return html`
+      <li class="act-place">
+        <span class="act-place__num">${index + 1}</span>
+        <span class="place-row__icon cat--${place.category}" title="${categoryLabel(place.category)}">${icon(place.category)}</span>
+        <span class="act-place__body">
+          <span class="act-place__name">${place.name}</span>
+          ${place.area ? html`<span class="act-place__sub">${place.area}</span>` : ""}
+        </span>
+        ${nav
+          ? html`<a class="btn btn--small act-place__nav" href="${nav}" target="_blank" rel="noopener noreferrer">${icon("navigate")}導航</a>`
+          : ""}
+      </li>
+    `;
+  }
   return html`
     <li class="act-place">
       <button type="button" class="act-place__open" data-open-place="${place.id}" aria-label="看「${place.name}」的地點資料">

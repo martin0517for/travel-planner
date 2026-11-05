@@ -278,7 +278,8 @@ function view(entry) {
   switch (entry.kind) {
     case "item": {
       const place = d.placeId ? placeStore.get(d.placeId) : null;
-      const meta = [d.transport && `→ ${d.transport}`, d.notes && firstLine(d.notes)].filter(Boolean).join("・");
+      // 第 3 行只放交通方式，不放備註（v0.13.0，2026-11-05 使用者決定 B：所有項目都一樣）
+      const meta = d.transport ? `→ ${d.transport}` : "";
       if (d.placeId) {
         return {
           time: d.time,
@@ -351,10 +352,6 @@ function view(entry) {
     }
   }
   return { title: "" };
-}
-
-function firstLine(text) {
-  return text.trim().split(/\r?\n/)[0];
 }
 
 export { dayLabel };

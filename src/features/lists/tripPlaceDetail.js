@@ -14,6 +14,8 @@
  * - 移除只會把地點移出這趟的清單，共用地點資料庫不受影響。
  *   已排入（用在航班、住宿；之後還有活動、行程）的地點不能移除：按鈕變灰，下方寫原因（2026-11-01 使用者決定）。
  * - 編輯備註、編輯地點資料存好後，重新打開更新過的預覽。
+ * - 筆記（v0.12.1）：「地點備註」下面、「這趟的備註」上面列出這趟用到這個地點的筆記（noteLinks.js）；
+ *   點了疊上筆記預覽（只看內容）。stacked 時只顯示、不能點。
  * - stacked（v0.12.0）：從筆記、活動的預覽點地點打開時，疊在原本的預覽上面，只看內容；
  *   底部只有「返回」（backLabel，例如「返回筆記」），關掉就回到原本的預覽。
  *   編輯備註、移出清單要到「清單 → 想去的地點」做（避免兩層預覽之間資料不同步）。
@@ -27,6 +29,7 @@ import { categoryLabel, placeStore } from "../../data/places.js";
 import { tripPlaceStore } from "../../data/tripPlaces.js";
 import { openPlaceForm } from "../places/placeForm.js";
 import { openTripPlaceNotesForm } from "./tripPlaceNotesForm.js";
+import { notesUsingPlace, notesSection, wireNoteLinks } from "../notes/noteLinks.js";
 
 export function openTripPlaceDetail({ entry, place, trip, usedIn = [], onChanged, stacked = false, backLabel = "返回" }) {
   const usedText = usedIn.map((u) => u.full).join("、");
@@ -64,6 +67,8 @@ export function openTripPlaceDetail({ entry, place, trip, usedIn = [], onChanged
       ${place.address ? detailRow("地址", place.address) : ""}
       ${place.notes ? detailRow("地點備註（所有旅程共用）", linkify(place.notes), true) : ""}
 
+      ${notesSection(notesUsingPlace(trip.id, place.id), { clickable: !stacked })}
+
       <div class="tp-notes">
         <div class="detail-row__label">這趟的備註</div>
         ${entry.notes
@@ -88,6 +93,7 @@ export function openTripPlaceDetail({ entry, place, trip, usedIn = [], onChanged
             </button>`}
     `,
     onMount(panel, close) {
+      wireNoteLinks(panel, { backLabel: "返回地點" });
       if (stacked) {
         panel.querySelector('[data-action="back"]').addEventListener("click", close);
         return;
