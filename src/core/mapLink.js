@@ -11,9 +11,10 @@
  * 匯出：
  *   mapLinkKind(text)        "full"｜"short"｜"other-map"｜""（不是地圖連結）
  *   parseGoogleMapsUrl(url)  → { name, address, coords }（讀不到的欄位是 "" 或 null）
- *   readMapLink(url, signal) → { ok: true, name, address, coords } 或 { ok: false, error }
+ *   readMapLink(url, signal) → { ok: true, name, address, coords }（name 可能是 ""）或 { ok: false, error }
  *
- * 規則：名稱和地址分開（見 splitNameAddress；v0.13.2 先找數字或 〒 開頭的地址，找不到才用逗號）。
+ * 規則：`/maps/place/店名/` 整段是名稱；`?q=` 要把名稱和地址分開（見 splitQuery）。
+ * 只有地址、沒有名稱時也回傳 ok（name 是 ""），表單只帶入地址（v0.13.3）。
  * 只有座標的圖釘（/place/35.71,139.79）當作沒有名稱。
  *
  * 資安：
@@ -82,32 +83,45 @@ function decodePart(seg) {
   }
 }
 
+/** 長得像地址開頭的一個詞：門牌（1-1、2-24-12、3丁目、5番地）、〒、郵遞區號接中文（106台北市） */
+const ADDR_WORD = /^(?:〒|[0-9０-９]+[-−‐－ー][0-9０-９]|[0-9０-９]+(?:丁目|番地?|号|號)|[0-9０-９]{3,6}\p{Script=Han})/u;
+/** 整段一開頭就是地址（可以先有國名）：日本〒150-6145 …、〒151-…、台灣106台北市…、1-1 Yoyogi… */
+const ADDR_START = /^(?:(?:日本|台灣|臺灣|Japan|Taiwan)[、,\s]*(?:〒|[0-9０-９])|〒)/u;
+const startsLikeAddress = (s) => ADDR_START.test(s) || ADDR_WORD.test(s);
+
+/** 名稱、地址最後整理：去掉頭尾逗號、限制長度；名稱沒有字或只是座標 → 空的 */
+function finish(name, address) {
+  name = oneLine(String(name).replace(/^[,，\s]+|[,，\s]+$/g, ""), LIMITS.name);
+  address = oneLine(String(address).replace(/^[,，\s]+|[,，\s]+$/g, ""), LIMITS.address);
+  if (!/[\p{L}\p{N}]/u.test(name) || parseCoordinates(name)) name = "";
+  if (!/[\p{L}\p{N}]/u.test(address) || parseCoordinates(address)) address = "";
+  return { name, address };
+}
+
 /**
- * 「店名 地址」→ { name, address }；只有座標、沒有任何文字的 → 空的
- * v0.13.2（2026-11-06 實機連結）：短網址展開後常是 `?q=明治神宮 1-1 Yoyogikamizonocho, Shibuya, …`，
- *   名稱和地址之間只有空格。先找「第一個以數字或 〒 開頭的詞」（前面至少要有一個詞）當地址的開頭；
- *   找不到才用逗號：逗號前＝名稱、逗號後＝地址。
- *   已知限制：店名中間有數字（Hotel 1899 Tokyo）會切太早。
+ * `?q=` 的文字 → { name, address }（v0.13.2、v0.13.3，2026-11-06 用實機連結修正）
+ *   - 一開頭就是地址（澀谷 SKY：`日本〒150-6145 Tokyo, …`）→ 只有地址、沒有名稱。
+ *   - `明治神宮 1-1 Yoyogikamizonocho, …`：名稱和地址之間只有空格 → 找第一個「長得像地址開頭」的詞
+ *     （ADDR_WORD，前面至少要有一個詞）；只是以數字開頭（6)、1899、2）不算。
+ *   - 都找不到才用逗號：逗號前＝名稱、逗號後＝地址。
+ *   - 已知限制：美國式地址（1600 Amphitheatre Pkwy）認不出來，會退回逗號規則。
  */
-function splitNameAddress(text) {
+function splitQuery(text) {
   const s = oneLine(text, 500);
   if (!s || parseCoordinates(s)) return { name: "", address: "" };
-  let name = "";
-  let address = "";
+  if (startsLikeAddress(s)) return finish("", s);
   const words = s.split(" ");
-  const at = words.findIndex((w, i) => i > 0 && /^[0-9０-９〒]/.test(w));
-  if (at > 0) {
-    name = words.slice(0, at).join(" ").replace(/[,，]+$/, "");
-    address = words.slice(at).join(" ");
-  } else {
-    const i = s.search(/[,，]/);
-    name = i >= 0 ? s.slice(0, i) : s;
-    address = i >= 0 ? s.slice(i + 1) : "";
-  }
-  name = oneLine(name, LIMITS.name);
-  address = oneLine(address, LIMITS.address);
-  if (!/[\p{L}\p{N}]/u.test(name) || parseCoordinates(name)) return { name: "", address: "" };
-  return { name, address: /[\p{L}\p{N}]/u.test(address) ? address : "" };
+  const at = words.findIndex((w, i) => i > 0 && ADDR_WORD.test(w));
+  if (at > 0) return finish(words.slice(0, at).join(" "), words.slice(at).join(" "));
+  const i = s.search(/[,，]/);
+  return i >= 0 ? finish(s.slice(0, i), s.slice(i + 1)) : finish(s, "");
+}
+
+/** `/maps/place/店名/` 的店名：整段都是名稱，不切地址（Milk Shop Luck Akihabara (Platform 6)）；一開頭就是地址時當成地址 */
+function placeSegment(text) {
+  const s = oneLine(text, 500);
+  if (!s || parseCoordinates(s)) return { name: "", address: "" };
+  return startsLikeAddress(s) ? finish("", s) : finish(s, "");
 }
 
 /** 解析 Google 地圖完整網址 → { name, address, coords } */
@@ -116,11 +130,14 @@ export function parseGoogleMapsUrl(text) {
   const u = parse(text);
   if (!u || !isFull(u)) return empty;
   const coords = parseCoordinates(u.href);
-  let raw = "";
-  const m = u.pathname.match(/^\/maps\/(?:place|search)\/([^/]+)/);
-  if (m) raw = decodePart(m[1]);
-  if (!raw) raw = u.searchParams.get("q") || u.searchParams.get("query") || "";
-  return { ...splitNameAddress(raw), coords };
+  const place = u.pathname.match(/^\/maps\/place\/([^/]+)/);
+  if (place) {
+    const r = placeSegment(decodePart(place[1]));
+    if (r.name || r.address) return { ...r, coords };
+  }
+  const search = u.pathname.match(/^\/maps\/search\/([^/]+)/);
+  const raw = (search && decodePart(search[1])) || u.searchParams.get("q") || u.searchParams.get("query") || "";
+  return { ...splitQuery(raw), coords };
 }
 
 /** 讀出連結裡的名稱（短網址透過轉接服務展開）。signal：表單關掉或重讀時中止 */
@@ -128,7 +145,7 @@ export async function readMapLink(text, signal) {
   const kind = mapLinkKind(text);
   if (kind === "full") {
     const r = parseGoogleMapsUrl(text);
-    return r.name ? { ok: true, ...r } : { ok: false, error: "這個連結裡沒有名稱" };
+    return r.name || r.address ? { ok: true, ...r } : { ok: false, error: "這個連結裡沒有名稱" };
   }
   if (kind !== "short") return { ok: false, error: kind === "other-map" ? "只能從 Google 地圖連結帶入名稱" : "這不是 Google 地圖連結" };
 
@@ -151,7 +168,7 @@ export async function readMapLink(text, signal) {
     // 舊版轉接服務沒有 /maps → 404「找不到」，一樣當成讀不到
     if (!d || d.ok !== true || typeof d.url !== "string" || mapLinkKind(d.url) !== "full") return { ok: false, error: "短網址展開不了" };
     const r = parseGoogleMapsUrl(d.url);
-    return r.name ? { ok: true, ...r } : { ok: false, error: "這個連結裡沒有名稱" };
+    return r.name || r.address ? { ok: true, ...r } : { ok: false, error: "這個連結裡沒有名稱" };
   } catch {
     return { ok: false, error: controller.signal.aborted ? "讀取逾時" : "連線失敗" };
   } finally {

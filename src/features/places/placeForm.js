@@ -201,8 +201,10 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
         const titleInput = form.elements.placeTitle;
         const before = titleInput.value.trim();
         if (auto && before) return showMapMsg(""); // 讀取中使用者自己打了名稱 → 不蓋掉
-        titleInput.value = r.name;
-        if (!queryEdited) queryInput.value = r.name; // 搜尋框跟著名稱（B-2）
+        if (r.name) {
+          titleInput.value = r.name;
+          if (!queryEdited) queryInput.value = r.name; // 搜尋框跟著名稱（B-2）
+        }
         const extra = [];
         if (r.address && !form.elements.placeAddr.value.trim()) {
           form.elements.placeAddr.value = r.address;
@@ -212,6 +214,11 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
           coords = r.coords;
           paintStatus();
           extra.push("座標");
+        }
+        if (!r.name) {
+          // 只有地址、沒有名稱（v0.13.3）：名稱不動，有帶入地址或座標就寫出來
+          const got = extra.length ? `已帶入${extra.join("、")}，` : "";
+          return showMapMsg(`這個連結只有地址，沒有名稱，${got}請自己輸入名稱。`, { warn: true });
         }
         const also = extra.length ? `和${extra.join("、")}` : "";
         showMapMsg(
