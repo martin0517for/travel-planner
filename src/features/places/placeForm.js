@@ -12,12 +12,17 @@
  * 「地圖標示位置（座標）」：只用在 App 內的地圖標示，有兩種設定方式：
  *   1. 搜尋框（預設等於名稱，可另外修改）：用 OpenStreetMap 搜尋，從結果中點選
  *   2. 貼上座標（或含座標的完整地圖連結），自動解析
+ * 「帶入名稱」（v0.13.1，2026-11-06 使用者決定）：
+ *   - 名稱空著時，貼上 Google 地圖連結就自動帶入名稱（貼在「貼上座標」欄的地圖連結也算）。
+ *   - 連結欄右邊「帶入名稱」按鈕：名稱有內容時用它，直接取代（提示寫出原本的名稱）。
+ *   - 短網址透過轉接服務展開（core/mapLink.js）；地址欄空著時帶入地址、還沒定位時帶入座標。
  */
 import { html, render } from "../../core/html.js";
 import { icon } from "../../core/icons.js";
 import { openSheet } from "../../core/sheet.js";
 import { placeStore, PLACE_CATEGORIES, LIMITS } from "../../data/places.js";
 import { parseCoordinates, looksLikeMapUrl, searchPlaces, isValidLatLng } from "../../core/geo.js";
+import { mapLinkKind, readMapLink } from "../../core/mapLink.js";
 
 export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted } = {}) {
   const isEdit = Boolean(place);
@@ -66,9 +71,13 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
 
         <div class="field">
           <label for="pl-mapurl">Google 地圖連結</label>
-          <input id="pl-mapurl" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="placeMapUrl" type="search" enterkeyhint="done"
-                 placeholder="https://maps.app.goo.gl/…" value="${v.mapsUrl}" />
-          <p class="field__hint field__hint--tight">在 Google 地圖按「分享」→「複製連結」貼上。按「導航」會直接打開這個連結；沒填就用名稱搜尋。</p>
+          <div class="paste-row">
+            <input id="pl-mapurl" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="placeMapUrl" type="search" enterkeyhint="done"
+                   placeholder="https://maps.app.goo.gl/…" value="${v.mapsUrl}" />
+            <button type="button" class="btn btn--small" data-action="map-name" ${v.mapsUrl ? "" : "disabled"}>帶入名稱</button>
+          </div>
+          <div class="form-notice form-notice--tight" id="pl-map-msg" aria-live="polite" hidden></div>
+          <p class="field__hint field__hint--tight">在 Google 地圖按「分享」→「複製連結」貼上，名稱空著時會自動帶入名稱。按「導航」會直接打開這個連結；沒填就用名稱搜尋。</p>
         </div>
 
         <fieldset class="field location">
@@ -133,6 +142,8 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
       const searchBtn = panel.querySelector('[data-action="search"]');
       const mapUrlInput = form.elements.placeMapUrl;
       const queryInput = panel.querySelector("#pl-query");
+      const mapNameBtn = panel.querySelector('[data-action="map-name"]');
+      const mapMsg = panel.querySelector("#pl-map-msg");
 
       // 搜尋框預設跟名稱同步；使用者自己改過搜尋框之後，就不再跟著名稱變
       // 有存過搜尋文字的地點，一開始就視為「改過」，不會被名稱蓋掉
@@ -141,6 +152,74 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
       form.elements.placeTitle.addEventListener("input", () => {
         if (!queryEdited) queryInput.value = form.elements.placeTitle.value;
       });
+
+      // ---- 從 Google 地圖連結帶入名稱（v0.13.1） ----
+      let mapReading = null; // 讀取中的 AbortController
+      let lastAutoUrl = ""; // 自動帶入試過的連結（同一個連結不重複自動讀）
+
+      function updateMapNameBtn() {
+        mapNameBtn.disabled = Boolean(mapReading) || !mapUrlInput.value.trim();
+      }
+      function showMapMsg(text, { busy = false, warn = false } = {}) {
+        if (!text) {
+          mapMsg.hidden = true;
+          render(mapMsg, html``);
+          return;
+        }
+        mapMsg.hidden = false;
+        mapMsg.classList.toggle("form-notice--warn", warn);
+        render(mapMsg, html`${busy ? html`<span class="spin" aria-hidden="true"></span>` : icon(warn ? "warning" : "check")}<span>${text}</span>`);
+      }
+      const nameEmpty = () => !form.elements.placeTitle.value.trim();
+
+      /** 名稱空著時自動帶入；不是 Google 地圖連結就安靜略過 */
+      function autoFillName(text) {
+        const url = String(text || "").trim();
+        if (!url || url === lastAutoUrl || !nameEmpty()) return;
+        const kind = mapLinkKind(url);
+        if (kind !== "full" && kind !== "short") return;
+        lastAutoUrl = url;
+        fillName(url, { auto: true });
+      }
+
+      async function fillName(text, { auto }) {
+        const url = String(text || "").trim();
+        if (!url) return;
+        if (mapReading) mapReading.abort();
+        const reading = new AbortController();
+        mapReading = reading;
+        updateMapNameBtn();
+        if (mapLinkKind(url) === "short") showMapMsg("正在讀取名稱…", { busy: true });
+        const r = await readMapLink(url, reading.signal);
+        if (mapReading !== reading) return; // 已經有新的讀取
+        mapReading = null;
+        updateMapNameBtn();
+        if (!r.ok) {
+          if (reading.signal.aborted) return showMapMsg("");
+          return showMapMsg(`${r.error}，請自己輸入名稱。`, { warn: true });
+        }
+        const titleInput = form.elements.placeTitle;
+        const before = titleInput.value.trim();
+        if (auto && before) return showMapMsg(""); // 讀取中使用者自己打了名稱 → 不蓋掉
+        titleInput.value = r.name;
+        if (!queryEdited) queryInput.value = r.name; // 搜尋框跟著名稱（B-2）
+        const extra = [];
+        if (r.address && !form.elements.placeAddr.value.trim()) {
+          form.elements.placeAddr.value = r.address;
+          extra.push("地址");
+        }
+        if (r.coords && !coords) {
+          coords = r.coords;
+          paintStatus();
+          extra.push("座標");
+        }
+        const also = extra.length ? `和${extra.join("、")}` : "";
+        showMapMsg(
+          before && before !== r.name
+            ? `已帶入名稱${also}（原本：${before}）。`
+            : `已從 Google 地圖連結帶入名稱${also}，請確認。`
+        );
+      }
 
       function paintStatus() {
         render(
@@ -218,6 +297,10 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
         const found = parseCoordinates(text);
         const url = looksLikeMapUrl(text);
         if (url && !mapUrlInput.value.trim()) mapUrlInput.value = url;
+        if (url) {
+          updateMapNameBtn();
+          autoFillName(url);
+        }
         if (found) {
           coords = found;
           pasteMsg.textContent = "已取得座標。";
@@ -237,7 +320,11 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
           coords = found;
           paintStatus();
         }
+        autoFillName(mapUrlInput.value);
       });
+      mapUrlInput.addEventListener("input", updateMapNameBtn);
+      mapUrlInput.addEventListener("paste", () => setTimeout(() => autoFillName(mapUrlInput.value), 0));
+      mapNameBtn.addEventListener("click", () => fillName(mapUrlInput.value, { auto: false }));
       panel.querySelector('[data-action="parse"]').addEventListener("click", applyPaste);
       pasteInput.addEventListener("paste", () => setTimeout(applyPaste, 0));
 

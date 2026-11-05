@@ -8,10 +8,18 @@
 //         topic：Threads 的主題標籤（例如「東京林檎製飴所」），沒有就 ""；IG 一律 ""（2026-11-03 加）
 //   失敗：{ ok: false, source, url, error }
 //
+// 介面：GET /maps?url=<Google 地圖短網址>（2026-11-06 加，v0.13.1）
+//   App 在瀏覽器裡展開不了 maps.app.goo.gl 短網址，由這裡讀「轉址的目的地」。
+//   只讀回應標頭裡的 Location，不下載 Google 的頁面；名稱、地址、座標的解析放在 App。
+//   成功：{ ok: true, url }（展開後的 Google 地圖網址）
+//   失敗：{ ok: false, error }
+//
 // 資安（倉庫是公開的，這裡不放任何密碼）：
 //   - 只接受 https 的 instagram.com 貼文（p／reel／reels／tv）與 threads.net／threads.com 貼文網址，
 //     其他網址一律拒絕，不能被當成任意網址的代理。轉址後的最終網址也要還在 IG／Threads。
-//   - 只接受 GET /api；從其他網站的網頁呼叫（Origin 不是 App 網域）一律拒絕。
+//   - /maps 只接受 https 的 maps.app.goo.gl／goo.gl/maps 短網址；轉址只跟著 Google 自己的網域走（最多 4 次），
+//     最後一定要是 google.*／maps.google.* 的 /maps 網址，否則當成讀不到。
+//   - 只接受 GET /api、/maps；從其他網站的網頁呼叫（Origin 不是 App 網域）一律拒絕。
 //   - 不記錄、不保存任何網址或內容；回應加 no-store。
 //   - 回傳的文字有長度上限（author 60、text 5000），並去掉 HTML 標籤與不可見字元；
 //     App 端仍然把它當成不可信內容（一律跳脫、存檔前再檢查）。
@@ -34,6 +42,11 @@ export default {
     // 瀏覽器從別的網站呼叫時一定會帶 Origin；不是 App 網域就拒絕
     if (origin && origin !== APP_ORIGIN) return json({ ok: false, error: "不允許的來源" }, 403);
     if (request.method !== "GET") return json({ ok: false, error: "只接受 GET" }, 405);
+    if (u.pathname === "/maps") {
+      const short = parseMapsShort(u.searchParams.get("url"));
+      if (!short) return json({ ok: false, error: "只接受 Google 地圖短網址" }, 400);
+      return json(await expandMaps(short));
+    }
     if (u.pathname !== "/api") return json({ ok: false, error: "找不到" }, 404);
 
     const target = parseTarget(u.searchParams.get("url"));
@@ -169,6 +182,75 @@ async function get(href, ua, timeout = TIMEOUT_MS) {
   } catch {
     return { status: 0 };
   }
+}
+
+// ---- Google 地圖短網址（/maps，2026-11-06 加） ----
+function parseMapsShort(raw) {
+  const s = String(raw || "").trim();
+  if (!s || s.length > 500) return null;
+  let t;
+  try {
+    t = new URL(s);
+  } catch {
+    return null;
+  }
+  if (t.protocol !== "https:" || t.username || t.password || t.port) return null;
+  const host = t.hostname.toLowerCase();
+  if (host === "maps.app.goo.gl" && /^\/[A-Za-z0-9_-]{4,40}\/?$/.test(t.pathname)) return `https://maps.app.goo.gl${t.pathname}`;
+  if (host === "goo.gl" && /^\/maps\/[A-Za-z0-9_-]{4,40}\/?$/.test(t.pathname)) return `https://goo.gl${t.pathname}`;
+  return null;
+}
+
+/** 轉址途中允許的網域：Google 的短網址、google.*、maps.google.*、consent.google.*（同意頁） */
+function googleHost(h) {
+  return h === "maps.app.goo.gl" || h === "goo.gl" || /^(?:www\.|maps\.|consent\.)?google\.[a-z]{2,3}(?:\.[a-z]{2})?$/.test(h);
+}
+
+/** 是 Google 地圖網址：maps.google.*，或 google.* 底下的 /maps… */
+function isGoogleMaps(href) {
+  try {
+    const x = new URL(href);
+    const h = x.hostname.toLowerCase();
+    if (x.protocol !== "https:" || !googleHost(h) || h.startsWith("consent.") || h.endsWith("goo.gl")) return false;
+    return h.startsWith("maps.") || x.pathname === "/maps" || x.pathname.startsWith("/maps/");
+  } catch {
+    return false;
+  }
+}
+
+async function expandMaps(short) {
+  let href = short;
+  for (let i = 0; i < 4; i++) {
+    let res;
+    try {
+      res = await fetch(href, {
+        headers: { "User-Agent": UA_BROWSER, "Accept-Language": "zh-TW,zh;q=0.9,ja;q=0.8,en;q=0.7" },
+        redirect: "manual",
+        signal: AbortSignal.timeout(TIMEOUT_MS),
+      });
+    } catch {
+      return { ok: false, error: "Google 地圖沒有回應" };
+    }
+    if (res.body) res.body.cancel().catch(() => {}); // 只看標頭，不下載頁面
+    const loc = res.headers.get("Location");
+    if (res.status < 300 || res.status >= 400 || !loc) break;
+    let next;
+    try {
+      next = new URL(loc, href);
+    } catch {
+      break;
+    }
+    // 同意頁（consent.google.*）：真正的目的地在 continue 參數
+    if (next.hostname.toLowerCase().startsWith("consent.")) {
+      const cont = next.searchParams.get("continue");
+      if (cont && isGoogleMaps(cont)) return { ok: true, url: clip(new URL(cont).href, 2000) };
+      break;
+    }
+    if (next.protocol !== "https:" || !googleHost(next.hostname.toLowerCase())) break;
+    if (isGoogleMaps(next.href)) return { ok: true, url: clip(next.href, 2000) };
+    href = next.href;
+  }
+  return { ok: false, error: "展開不了這個短網址" };
 }
 
 // ---- 文字處理 ----

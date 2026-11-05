@@ -306,6 +306,9 @@ body.has-page-sheet #app { display: none; }
 .form-notice > .icon { width: 18px; height: 18px; flex-shrink: 0; margin-top: 1px; }
 .form-notice > span:not(.spin) { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .form-notice--warn { color: var(--color-ink); }
+/* 欄位下方的小提示（地點表單「帶入名稱」，v0.13.1） */
+.form-notice--tight { margin: var(--space-2) 0 0; }
+.form-notice[hidden] { display: none; }
 .form-notice--warn > .icon { color: var(--color-danger); }
 
 /* 讀取中的轉圈 */
