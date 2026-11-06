@@ -16,6 +16,9 @@
  *   - 名稱空著時，貼上 Google 地圖連結就自動帶入名稱（貼在「貼上座標」欄的地圖連結也算）。
  *   - 連結欄右邊「帶入名稱」按鈕：名稱有內容時用它，直接取代（提示寫出原本的名稱）。
  *   - 短網址透過轉接服務展開（core/mapLink.js）；地址欄空著時帶入地址、還沒定位時帶入座標。
+ * 「讀取內容」（v0.13.4，2026-11-06 使用者決定）：參考連結是 IG／Threads 貼文時，參考連結下方出現按鈕，
+ *   按了讀貼文內文放進備註（空的直接放、有字就空一行接在後面、已經有就不重複、超過 1000 字截斷）；
+ *   Threads 有主題標籤而且名稱空著 → 順便帶入名稱。沿用筆記的 core/linkReader.js。
  */
 import { html, render } from "../../core/html.js";
 import { icon } from "../../core/icons.js";
@@ -23,6 +26,7 @@ import { openSheet } from "../../core/sheet.js";
 import { placeStore, PLACE_CATEGORIES, LIMITS } from "../../data/places.js";
 import { parseCoordinates, looksLikeMapUrl, searchPlaces, isValidLatLng } from "../../core/geo.js";
 import { mapLinkKind, readMapLink } from "../../core/mapLink.js";
+import { readableSource, readLink, SOURCE_LABEL } from "../../core/linkReader.js";
 
 export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted } = {}) {
   const isEdit = Boolean(place);
@@ -115,7 +119,9 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
           <label for="pl-website">參考連結</label>
           <input id="pl-website" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="website" type="search" enterkeyhint="done" placeholder="https://"
                  value="${v.website}" />
-          <p class="field__hint">在哪裡看到推薦？貼上 IG、Threads 或部落格網址</p>
+          <p class="field__hint field__hint--tight">在哪裡看到推薦？貼上 IG、Threads 或部落格網址</p>
+          <button type="button" class="btn btn--ghost btn--small read-btn" data-action="read-post" hidden>${icon("download")}讀取內容</button>
+          <div class="form-notice form-notice--tight" id="pl-web-msg" aria-live="polite" hidden></div>
         </div>
 
         <div class="field">
@@ -227,6 +233,73 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
             : `已從 Google 地圖連結帶入名稱${also}，請確認。`
         );
       }
+
+      // ---- 參考連結是 IG／Threads → 讀取內容放進備註（v0.13.4） ----
+      const webInput = form.elements.website;
+      const readPostBtn = panel.querySelector('[data-action="read-post"]');
+      const webMsg = panel.querySelector("#pl-web-msg");
+      let postReading = false;
+      function showWebMsg(text, { busy = false, warn = false } = {}) {
+        webMsg.hidden = !text;
+        webMsg.classList.toggle("form-notice--warn", warn);
+        render(webMsg, text ? html`${busy ? html`<span class="spin" aria-hidden="true"></span>` : icon(warn ? "warning" : "check")}<span>${text}</span>` : html``);
+      }
+      function updateReadPost() {
+        readPostBtn.hidden = !readableSource(webInput.value);
+        readPostBtn.disabled = postReading;
+      }
+      webInput.addEventListener("input", updateReadPost);
+      updateReadPost();
+
+      readPostBtn.addEventListener("click", async () => {
+        const url = webInput.value.trim();
+        const source = readableSource(url);
+        if (!source || postReading) return;
+        postReading = true;
+        updateReadPost();
+        showWebMsg(`正在讀取 ${SOURCE_LABEL[source]} 貼文…${source === "threads" ? "（約 3～4 秒）" : ""}`, { busy: true });
+        const r = await readLink(url);
+        postReading = false;
+        updateReadPost();
+        if (!panel.isConnected) return; // 讀取中已經關掉表單
+        if (!r.ok) return showWebMsg(`讀不到這篇貼文的內容：${r.error}。可以稍後再按一次「讀取內容」。`, { warn: true });
+
+        const notesBox = form.elements.notes;
+        const text = r.text.replace(/\r/g, "").trim();
+        const who = `${SOURCE_LABEL[r.source]}${r.author ? ` @${r.author}` : ""}`;
+        const parts = [];
+        // Threads 主題標籤（通常是店名）→ 名稱空著時帶入
+        if (r.topic && !form.elements.placeTitle.value.trim()) {
+          form.elements.placeTitle.value = [...r.topic].slice(0, LIMITS.name).join("");
+          if (!queryEdited) queryInput.value = form.elements.placeTitle.value;
+          parts.push("名稱");
+        }
+        const current = notesBox.value;
+        let cut = 0;
+        if (text && !current.includes(text)) {
+          const sep = current.trim() ? "\n\n" : "";
+          const base = current.trim() ? current.replace(/\s+$/, "") : "";
+          const room = LIMITS.notes - [...base].length - [...sep].length;
+          if (room > 0) {
+            const chars = [...text];
+            const add = chars.slice(0, room).join("");
+            cut = chars.length > room ? room : 0;
+            notesBox.value = base + sep + add;
+            parts.unshift("內容到備註");
+          } else {
+            return showWebMsg("備註已經滿了（1000 字），沒有放入貼文內容。", { warn: true });
+          }
+        } else if (text) {
+          if (!parts.length) return showWebMsg("這篇內容已經在備註裡了。");
+        }
+        const what = parts.length === 2 ? "內容到備註，和名稱（主題標籤）" : parts[0] === "名稱" ? "名稱（主題標籤）" : "內容到備註";
+        showWebMsg(
+          cut
+            ? `已從 ${who} 帶入${what}。貼文太長，只放了前 ${cut} 字，請確認。`
+            : `已從 ${who} 帶入${what}，請確認。`,
+          { warn: Boolean(cut) }
+        );
+      });
 
       function paintStatus() {
         render(
