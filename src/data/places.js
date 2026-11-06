@@ -11,6 +11,8 @@
  *   tags      string[] 自訂標籤，最多 10 個，每個最多 20 字（例如「必訪」「雨天備案」）
  *   address   string   最多 160 字
  *   lat, lng  number | null  座標（只用在 App 內的地圖標示；導航一律用名稱搜尋）
+ *   geoApprox boolean  座標是「約略」的：從 Google 地圖連結的 ftid 估算，可能差幾公里（v0.13.7）。
+ *                      沒有座標時一律 false；舊資料沒有這個欄位 → false
  *   mapsUrl   string   Google 地圖連結（只接受 http/https），按「導航」時直接打開
  *   website   string   參考連結：在哪裡看到推薦（IG、Threads、部落格…），只接受 http/https
  *                      （2026-10-16 從「官網」改名，欄位名稱保留 website，舊資料不用轉換）
@@ -75,6 +77,7 @@ function cleanPlace(raw) {
     address: cleanText(raw.address, LIMITS.address),
     lat: hasCoords ? raw.lat : null,
     lng: hasCoords ? raw.lng : null,
+    geoApprox: hasCoords && raw.geoApprox === true,
     mapsUrl: cleanUrl(raw.mapsUrl),
     website: cleanUrl(raw.website),
     notes: typeof raw.notes === "string" ? raw.notes.slice(0, LIMITS.notes) : "",

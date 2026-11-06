@@ -10,8 +10,11 @@
  *
  * 匯出：
  *   mapLinkKind(text)        "full"｜"short"｜"other-map"｜""（不是地圖連結）
- *   parseGoogleMapsUrl(url)  → { name, address, coords }（讀不到的欄位是 "" 或 null）
- *   readMapLink(url, signal) → { ok: true, name, address, coords }（name 可能是 ""）或 { ok: false, error }
+ *   parseGoogleMapsUrl(url)  → { name, address, coords, approx }（讀不到的欄位是 "" 或 null）
+ *   readMapLink(url, signal) → { ok: true, name, address, coords, approx }（name 可能是 ""）或 { ok: false, error }
+ *
+ * 座標：連結裡有 !3d!4d、@、ll= 就用（approx: false）；完全沒有、但有 ftid 時，
+ * 用 ftid 估算約略座標（approx: true，v0.13.7，可能差幾公里，見 geo.js 的 ftidCoords）。
  *
  * 規則：`/maps/place/店名/` 整段是名稱；`?q=` 要把名稱和地址分開（見 splitQuery）。
  * 只有地址、沒有名稱時也回傳 ok（name 是 ""），表單只帶入地址（v0.13.3）。
@@ -24,7 +27,7 @@
  *   - 只送出使用者貼的短網址，不帶旅程資料、Cookie、Referer；CSP 不用改（同一個轉接服務網域）。
  */
 import { safeUrl } from "./html.js";
-import { parseCoordinates } from "./geo.js";
+import { parseCoordinates, ftidCoords } from "./geo.js";
 
 const MAPS_API = "https://tp-link-reader.martin0517for.workers.dev/maps";
 const TIMEOUT_MS = 10000;
@@ -140,20 +143,28 @@ function placeSegment(text) {
   return finish(s, "");
 }
 
-/** 解析 Google 地圖完整網址 → { name, address, coords } */
+/** 連結裡的座標：精確的優先，沒有才用 ftid 估算約略座標 → { coords, approx } */
+function linkCoords(href) {
+  const exact = parseCoordinates(href);
+  if (exact) return { coords: exact, approx: false };
+  const rough = ftidCoords(href);
+  return { coords: rough, approx: Boolean(rough) };
+}
+
+/** 解析 Google 地圖完整網址 → { name, address, coords, approx } */
 export function parseGoogleMapsUrl(text) {
-  const empty = { name: "", address: "", coords: null };
+  const empty = { name: "", address: "", coords: null, approx: false };
   const u = parse(text);
   if (!u || !isFull(u)) return empty;
-  const coords = parseCoordinates(u.href);
+  const geo = linkCoords(u.href);
   const place = u.pathname.match(/^\/maps\/place\/([^/]+)/);
   if (place) {
     const r = placeSegment(decodePart(place[1]));
-    if (r.name || r.address) return { ...r, coords };
+    if (r.name || r.address) return { ...r, ...geo };
   }
   const search = u.pathname.match(/^\/maps\/search\/([^/]+)/);
   const raw = (search && decodePart(search[1])) || u.searchParams.get("q") || u.searchParams.get("query") || "";
-  return { ...splitQuery(raw), coords };
+  return { ...splitQuery(raw), ...geo };
 }
 
 /** 讀出連結裡的名稱（短網址透過轉接服務展開）。signal：表單關掉或重讀時中止 */

@@ -38,7 +38,7 @@ export function openPlaceDetail({ place, onChanged, stacked = false, backLabel =
       <p class="field__hint nav-hint">${safeUrl(place.mapsUrl) ? "導航會打開保存的 Google 地圖連結" : "沒有保存 Google 地圖連結，導航會用「名稱＋地區」搜尋"}</p>
 
       ${place.address ? detailRow("地址", place.address) : ""}
-      ${detailRow("座標", hasCoords ? `${place.lat}, ${place.lng}` : "尚未設定（不會顯示在 App 的地圖上）")}
+      ${detailRow("座標", hasCoords ? `${place.lat}, ${place.lng}${place.geoApprox ? "（約略，從 Google 地圖連結估算，可能差幾公里）" : ""}` : "尚未設定（不會顯示在 App 的地圖上）")}
       ${place.notes ? detailRow("備註", linkify(place.notes), true) : ""}
 
       ${stacked

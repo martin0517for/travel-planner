@@ -61,8 +61,14 @@ export function parseCoordinates(text) {
     /* 解碼失敗就用原字串 */
   }
 
+  // Google 地點的精確座標（優先）。data= 裡可能有好幾組：前面的是之前看過的地點（例如從 Tas Yard 點到別家店），
+  // 這次這個地點排在最後 → 取最後一組（v0.13.7，2026-11-07 用 8 個實機網址確認）
+  const precise = [...decoded.matchAll(new RegExp(`!3d${NUM}!4d${NUM}`, "g"))];
+  for (let i = precise.length - 1; i >= 0; i--) {
+    const pair = toPair(precise[i][1], precise[i][2]);
+    if (pair) return pair;
+  }
   const patterns = [
-    new RegExp(`!3d${NUM}!4d${NUM}`), // Google 地點的精確座標（優先）
     new RegExp(`@${NUM},${NUM}`), // Google 地圖畫面中心
     new RegExp(`[?&](?:ll|q|query|coordinate|destination|daddr|sll)=${NUM},\\s*${NUM}`), // Google / Apple 參數
   ];
@@ -74,6 +80,80 @@ export function parseCoordinates(text) {
     }
   }
   return null;
+}
+
+/**
+ * 從 Google 地圖連結的 ftid（地點編號，例如 ftid=0x60188cb9586e6db9:0x9093260be65cfcf6，
+ * 或 data= 裡的 !1s0x…:0x…）估算約略座標（v0.13.7，2026-11-07 使用者決定）。
+ *
+ * ftid 前半段是 S2 格子編號（Google 把地球切成格子的編號方式），換算成格子中心就是座標。
+ * 這不是 Google 公開的規則，2026-11-07 用 9 個東京地點比對瀏覽器網址的 !3d!4d：
+ * 6 個差 0.4～29 公尺，3 個差 3.5～9.7 公里（看起來是地點建檔時的位置，之後圖釘移過）。
+ * 所以只在連結裡完全找不到座標時才用，存檔時標成「約略」（Place.geoApprox）。
+ * 找不到或格式不對回傳 null。純計算，不連網。
+ */
+export function ftidCoords(text) {
+  if (typeof text !== "string") return null;
+  let s = text.slice(0, 2000);
+  try {
+    s = decodeURIComponent(s);
+  } catch {
+    /* 解碼失敗就用原字串 */
+  }
+  const FEATURE = "(0x[0-9a-f]{1,16}):0x[0-9a-f]{1,16}";
+  let hex = null;
+  const param = s.match(new RegExp(`[?&]ftid=${FEATURE}(?![0-9a-z])`, "i"));
+  if (param) hex = param[1];
+  else {
+    // data= 裡 !1s 的地點編號（!5s 是所在的大樓，不用）；跟 !3d!4d 一樣取最後一個
+    const all = [...s.matchAll(new RegExp(`!1s${FEATURE}(?![0-9a-z])`, "gi"))];
+    if (all.length) hex = all[all.length - 1][1];
+  }
+  if (!hex) return null;
+  const ll = s2CellCenter(BigInt(hex.toLowerCase()));
+  return ll ? toPair(ll.lat, ll.lng) : null;
+}
+
+// ---- S2 格子編號 → 格子中心的緯度、經度（照 S2 函式庫 S2CellId::ToFaceIJOrientation、FaceUVtoXYZ 的算法） ----
+const POS_TO_IJ = [[0, 1, 3, 2], [0, 2, 3, 1], [3, 2, 0, 1], [3, 1, 0, 2]];
+const POS_TO_ORIENTATION = [1, 0, 0, 3];
+const MAX_LEVEL = 30;
+
+function s2CellCenter(id) {
+  if (id <= 0n || id >= 1n << 64n) return null;
+  const face = Number(id >> 61n);
+  if (face > 5) return null;
+  // 最低位的 1 決定層級：第 30 層（最細，約 1 公分）在第 0 位，每粗一層往上 2 位
+  let low = 0;
+  while (((id >> BigInt(low)) & 1n) === 0n) low++;
+  if (low % 2 !== 0 || low > 2 * MAX_LEVEL) return null;
+  const level = MAX_LEVEL - low / 2;
+
+  let i = 0;
+  let j = 0;
+  let orientation = face & 1;
+  for (let k = 0; k < level; k++) {
+    const pos = Number((id >> BigInt(59 - 2 * k)) & 3n);
+    const ij = POS_TO_IJ[orientation][pos];
+    i = i * 2 + (ij >> 1);
+    j = j * 2 + (ij & 1);
+    orientation ^= POS_TO_ORIENTATION[pos];
+  }
+  const size = 2 ** (MAX_LEVEL - level);
+  const s = (i * size + size / 2) / 2 ** MAX_LEVEL;
+  const t = (j * size + size / 2) / 2 ** MAX_LEVEL;
+  const u = stToUv(s);
+  const v = stToUv(t);
+  const [x, y, z] = [
+    [1, u, v], [-u, 1, v], [-u, -v, 1], [-1, -v, -u], [v, -1, -u], [v, u, -1],
+  ][face];
+  const lat = (Math.atan2(z, Math.hypot(x, y)) * 180) / Math.PI;
+  const lng = (Math.atan2(y, x) * 180) / Math.PI;
+  return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
+}
+
+function stToUv(s) {
+  return s >= 0.5 ? (4 * s * s - 1) / 3 : (1 - 4 * (1 - s) * (1 - s)) / 3;
 }
 
 /** 這段文字看起來是不是地圖連結（用來決定要不要保存成「地圖連結」） */

@@ -16,6 +16,9 @@
  *   - 名稱空著時，貼上 Google 地圖連結就自動帶入名稱（貼在「貼上座標」欄的地圖連結也算）。
  *   - 連結欄右邊「帶入名稱」按鈕：名稱有內容時用它，直接取代（提示寫出原本的名稱）。
  *   - 短網址透過轉接服務展開（core/mapLink.js）；地址欄空著時帶入地址、還沒定位時帶入座標。
+ * 「約略座標」（v0.13.7，2026-11-07 使用者決定）：連結裡沒有座標、但有 ftid 時，用 ftid 估算座標，
+ *   存成 geoApprox: true，狀態列顯示「已定位（約略）」。用搜尋、貼上座標、精確座標的連結重新定位時拿掉標記；
+ *   約略座標遇到有精確座標的連結會被取代（已經是精確座標的不動）。
  * 「讀取內容」（v0.13.4，2026-11-06 使用者決定）：參考連結是 IG／Threads 貼文時，參考連結下方出現按鈕，
  *   按了讀貼文內文放進備註（空的直接放、有字就空一行接在後面、已經有就不重複、超過 1000 字截斷）；
  *   Threads 有主題標籤而且名稱空著 → 順便帶入名稱。沿用筆記的 core/linkReader.js。
@@ -24,7 +27,7 @@ import { html, render } from "../../core/html.js";
 import { icon } from "../../core/icons.js";
 import { openSheet } from "../../core/sheet.js";
 import { placeStore, PLACE_CATEGORIES, LIMITS } from "../../data/places.js";
-import { parseCoordinates, looksLikeMapUrl, searchPlaces, isValidLatLng } from "../../core/geo.js";
+import { parseCoordinates, ftidCoords, looksLikeMapUrl, searchPlaces, isValidLatLng } from "../../core/geo.js";
 import { mapLinkKind, readMapLink } from "../../core/mapLink.js";
 import { readableSource, readLink, SOURCE_LABEL } from "../../core/linkReader.js";
 
@@ -32,10 +35,12 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
   const isEdit = Boolean(place);
   const v = place || {
     name: defaults.name || "", category: defaults.category || "attraction", area: defaults.area || "",
-    tags: [], address: "", lat: null, lng: null, mapsUrl: "", website: "", notes: "", geoQuery: "",
+    tags: [], address: "", lat: null, lng: null, geoApprox: false, mapsUrl: "", website: "", notes: "", geoQuery: "",
   };
   // 位置的暫存狀態（按「儲存」才會寫入）
   let coords = isValidLatLng(v.lat, v.lng) ? { lat: v.lat, lng: v.lng } : null;
+  // 座標是不是約略的（從 ftid 估算，v0.13.7）
+  let approx = Boolean(coords) && v.geoApprox === true;
   // 上次成功搜尋到位置時用的文字（儲存時一起存，下次編輯時搜尋框顯示它）
   let geoQuery = v.geoQuery || "";
   const areas = placeStore.areas();
@@ -87,6 +92,7 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
         <fieldset class="field location">
           <legend class="field__legend">地圖標示位置（座標）</legend>
           <div class="location__status" id="pl-loc-status"></div>
+          <div id="pl-loc-approx"></div>
 
           <div class="location__query">
             <input id="pl-query" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" type="search" enterkeyhint="search"
@@ -142,6 +148,7 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
       const form = panel.querySelector("form");
       const errorsBox = panel.querySelector(".form__errors");
       const statusBox = panel.querySelector("#pl-loc-status");
+      const approxBox = panel.querySelector("#pl-loc-approx");
       const resultsBox = panel.querySelector("#pl-results");
       const pasteInput = panel.querySelector("#pl-paste");
       const pasteMsg = panel.querySelector("#pl-paste-msg");
@@ -216,21 +223,25 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
           form.elements.placeAddr.value = r.address;
           extra.push("地址");
         }
-        if (r.coords && !coords) {
+        let roughNote = "";
+        // 還沒定位 → 帶入；目前是約略座標、連結有精確座標 → 換成精確的（v0.13.7）
+        if (r.coords && (!coords || (approx && !r.approx))) {
           coords = r.coords;
+          approx = r.approx;
           paintStatus();
-          extra.push("座標");
+          extra.push(r.approx ? "約略座標" : "座標");
+          if (r.approx) roughNote = "約略座標是從連結估算的，可能差幾公里。";
         }
         if (!r.name) {
           // 只有地址、沒有名稱（v0.13.3）：名稱不動，有帶入地址或座標就寫出來
           const got = extra.length ? `已帶入${extra.join("、")}，` : "";
-          return showMapMsg(`這個連結只有地址，沒有名稱，${got}請自己輸入名稱。`, { warn: true });
+          return showMapMsg(`這個連結只有地址，沒有名稱，${got}請自己輸入名稱。${roughNote}`, { warn: true });
         }
         const also = extra.length ? `和${extra.join("、")}` : "";
         showMapMsg(
           before && before !== r.name
-            ? `已帶入名稱${also}（原本：${before}）。`
-            : `已從 Google 地圖連結帶入名稱${also}，請確認。`
+            ? `已帶入名稱${also}（原本：${before}）。${roughNote}`
+            : `已從 Google 地圖連結帶入名稱${also}，請確認。${roughNote}`
         );
       }
 
@@ -306,13 +317,19 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
           statusBox,
           coords
             ? html`
-                <span class="location__ok">${icon("pin")}已定位 <span class="mono">${coords.lat}, ${coords.lng}</span></span>
+                <span class="location__ok">${icon("pin")}${approx ? "已定位（約略）" : "已定位"} <span class="mono">${coords.lat}, ${coords.lng}</span></span>
                 <button type="button" class="link-btn" data-action="clear-coords">清除</button>
               `
             : html`<span class="muted">尚未定位（不會顯示在 App 的地圖上）</span>`
         );
+        render(
+          approxBox,
+          coords && approx
+            ? html`<p class="field__hint field__hint--tight">從 Google 地圖連結估算的位置，可能差幾公里。要精確可以用下面的搜尋，或貼上座標。</p>`
+            : html``
+        );
         const clear = statusBox.querySelector('[data-action="clear-coords"]');
-        if (clear) clear.addEventListener("click", () => { coords = null; geoQuery = ""; paintStatus(); });
+        if (clear) clear.addEventListener("click", () => { coords = null; approx = false; geoQuery = ""; paintStatus(); });
       }
       paintStatus();
 
@@ -349,6 +366,7 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
             b.addEventListener("click", () => {
               const r = results[Number(b.dataset.index)];
               coords = { lat: r.lat, lng: r.lng };
+              approx = false;
               geoQuery = query; // 記住這次搜尋到位置用的文字
               if (!form.elements.placeAddr.value.trim()) form.elements.placeAddr.value = r.address.slice(0, LIMITS.address);
               render(resultsBox, html``);
@@ -381,9 +399,16 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
           updateMapNameBtn();
           autoFillName(url);
         }
+        // 連結裡沒有精確座標，但有 ftid → 約略座標（還沒定位、或目前也是約略的才用，v0.13.7）
+        const rough = !found && url && mapLinkKind(url) === "full" && (!coords || approx) ? ftidCoords(url) : null;
         if (found) {
           coords = found;
+          approx = false;
           pasteMsg.textContent = "已取得座標。";
+        } else if (rough) {
+          coords = rough;
+          approx = true;
+          pasteMsg.textContent = "這個連結裡沒有精確座標，已用連結裡的地點編號估算約略座標（可能差幾公里）。要精確可以用上方的搜尋。";
         } else if (url) {
           pasteMsg.textContent = "這個連結裡沒有座標（短網址無法解析），已填入上方的 Google 地圖連結。要在 App 地圖上標示，請用上方的搜尋框搜尋，或貼上座標。";
         } else {
@@ -396,8 +421,14 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
       // 連結欄：貼上的完整連結裡如果有座標、而且還沒定位，順便帶入座標
       mapUrlInput.addEventListener("change", () => {
         const found = parseCoordinates(mapUrlInput.value);
-        if (found && !coords) {
+        const rough = !found && !coords && mapLinkKind(mapUrlInput.value) === "full" ? ftidCoords(mapUrlInput.value) : null;
+        if (found && (!coords || approx)) {
           coords = found;
+          approx = false;
+          paintStatus();
+        } else if (rough) {
+          coords = rough;
+          approx = true;
           paintStatus();
         }
         autoFillName(mapUrlInput.value);
@@ -424,6 +455,7 @@ export function openPlaceForm({ place = null, defaults = {}, onSaved, onDeleted 
           address: form.elements.placeAddr.value,
           lat: coords ? coords.lat : null,
           lng: coords ? coords.lng : null,
+          geoApprox: Boolean(coords) && approx,
           mapsUrl: mapUrlInput.value,
           website: form.elements.website.value,
           notes: form.elements.notes.value,
