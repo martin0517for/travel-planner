@@ -87,7 +87,12 @@ function decodePart(seg) {
 const ADDR_WORD = /^(?:〒|[0-9０-９]+[-−‐－ー][0-9０-９]|[0-9０-９]+(?:丁目|番地?|号|號)|[0-9０-９]{3,6}\p{Script=Han})/u;
 /** 整段一開頭就是地址（可以先有國名）：日本〒150-6145 …、〒151-…、台灣106台北市…、1-1 Yoyogi… */
 const ADDR_START = /^(?:(?:日本|台灣|臺灣|Japan|Taiwan)[、,\s]*(?:〒|[0-9０-９])|〒)/u;
-const startsLikeAddress = (s) => ADDR_START.test(s) || ADDR_WORD.test(s);
+/** 日本地址的英文寫法：`3 Chome-3-14`（3 丁目 3-14，也接受 Chōme），v0.13.5 */
+const CHOME_START = /^[0-9０-９]+\s+ch[oō]me/iu;
+const startsLikeAddress = (s) => ADDR_START.test(s) || ADDR_WORD.test(s) || CHOME_START.test(s);
+/** 第 i 個詞是不是地址開頭：ADDR_WORD，或「數字＋下一個詞以 Chome 開頭」 */
+const addressAt = (words, i) =>
+  ADDR_WORD.test(words[i]) || (/^[0-9０-９]+$/.test(words[i]) && /^ch[oō]me/iu.test(words[i + 1] || ""));
 
 /** 名稱、地址最後整理：去掉頭尾逗號、限制長度；名稱沒有字或只是座標 → 空的 */
 function finish(name, address) {
@@ -103,6 +108,8 @@ function finish(name, address) {
  *   - 一開頭就是地址（澀谷 SKY：`日本〒150-6145 Tokyo, …`）→ 只有地址、沒有名稱。
  *   - `明治神宮 1-1 Yoyogikamizonocho, …`：名稱和地址之間只有空格 → 找第一個「長得像地址開頭」的詞
  *     （ADDR_WORD，前面至少要有一個詞）；只是以數字開頭（6)、1899、2）不算。
+ *   - v0.13.5：第一個逗號後面一開頭就像地址（含 `3 Chome-3-14`）→ 先在逗號切開；
+ *     一個一個詞找時，「數字＋下一個詞以 Chome 開頭」也算地址開頭。
  *   - 都找不到才用逗號：逗號前＝名稱、逗號後＝地址。
  *   - 已知限制：美國式地址（1600 Amphitheatre Pkwy）認不出來，會退回逗號規則。
  */
@@ -110,10 +117,12 @@ function splitQuery(text) {
   const s = oneLine(text, 500);
   if (!s || parseCoordinates(s)) return { name: "", address: "" };
   if (startsLikeAddress(s)) return finish("", s);
-  const words = s.split(" ");
-  const at = words.findIndex((w, i) => i > 0 && ADDR_WORD.test(w));
-  if (at > 0) return finish(words.slice(0, at).join(" "), words.slice(at).join(" "));
+  // 第一個逗號後面一開頭就像地址 → 在逗號切開（Tas Yard, 3 Chome-3-14 Sendagaya, …，v0.13.5）
   const i = s.search(/[,，]/);
+  if (i > 0 && startsLikeAddress(s.slice(i + 1).trim())) return finish(s.slice(0, i), s.slice(i + 1));
+  const words = s.split(" ");
+  const at = words.findIndex((w, k) => k > 0 && addressAt(words, k));
+  if (at > 0) return finish(words.slice(0, at).join(" "), words.slice(at).join(" "));
   return i >= 0 ? finish(s.slice(0, i), s.slice(i + 1)) : finish(s, "");
 }
 
