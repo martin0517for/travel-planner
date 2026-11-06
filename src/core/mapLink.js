@@ -126,11 +126,18 @@ function splitQuery(text) {
   return i >= 0 ? finish(s.slice(0, i), s.slice(i + 1)) : finish(s, "");
 }
 
-/** `/maps/place/店名/` 的店名：整段都是名稱，不切地址（Milk Shop Luck Akihabara (Platform 6)）；一開頭就是地址時當成地址 */
+/**
+ * `/maps/place/店名/` 的店名：整段都是名稱，不切地址（Milk Shop Luck Akihabara (Platform 6)）；一開頭就是地址時當成地址。
+ * v0.13.6：瀏覽器打開短網址後網址列的 `/place/Tas Yard, 3 Chome-3-14 Sendagaya, …/` 會接地址 →
+ *   第一個逗號後面一開頭就像地址時，在逗號切開（不一個詞一個詞找，店名裡的數字不會被切斷）。
+ */
 function placeSegment(text) {
   const s = oneLine(text, 500);
   if (!s || parseCoordinates(s)) return { name: "", address: "" };
-  return startsLikeAddress(s) ? finish("", s) : finish(s, "");
+  if (startsLikeAddress(s)) return finish("", s);
+  const i = s.search(/[,，]/);
+  if (i > 0 && startsLikeAddress(s.slice(i + 1).trim())) return finish(s.slice(0, i), s.slice(i + 1));
+  return finish(s, "");
 }
 
 /** 解析 Google 地圖完整網址 → { name, address, coords } */
