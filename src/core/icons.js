@@ -45,6 +45,9 @@ const PATHS = {
   rest: '<path d="M5 9h11v4a5 5 0 01-5 5h-1a5 5 0 01-5-5z"/><path d="M16 10h1.5a2.5 2.5 0 010 5H16M8 3.5v2.5M12 3.5v2.5"/>',
   dot: '<circle cx="12" cy="12" r="3.5"/>',
   warning: '<path d="M12 3l9.5 17h-19z"/><path d="M12 10v4.5M12 17.5v.5"/>',
+  // 地圖頁（v0.14.0）：篩選、我的位置
+  filter: '<path d="M4 5h16l-6 7.5V19l-4-2v-4.5z"/>',
+  locate: '<circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.5"/><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5"/>',
   airport: '<path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 00-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z"/>',
 };
 

@@ -8,7 +8,9 @@
     內容安全政策（CSP）：只允許載入這裡列出的來源，其他一律擋掉。
     就算有惡意文字混進畫面，也無法載入外部程式或把資料送出去。
     之後加地圖、天氣、匯率時，要在對應的項目補上它們的網域。
-    目前允許連線的外部服務：nominatim.openstreetmap.org（地點搜尋，只在按「搜尋」時送出搜尋文字）。
+    目前允許連線的外部服務：nominatim.openstreetmap.org（地點搜尋，只在按「搜尋」時送出搜尋文字）、
+    tp-link-reader（貼上連結的轉接服務）、tile.openstreetmap.org（地圖頁的底圖圖片，v0.14.0）。
+    地圖程式 Leaflet 放在自己的網域（public/vendor/leaflet），所以 script-src 不用開放外部。
     注意：style-src 沒有開放 'unsafe-inline'，所以 HTML 裡不能寫 style="..."，樣式一律寫在 CSS 檔。
   -->
   <meta http-equiv="Content-Security-Policy" content="
@@ -16,7 +18,7 @@
     script-src 'self';
     style-src 'self';
     font-src 'self';
-    img-src 'self' data: blob:;
+    img-src 'self' data: blob: https://tile.openstreetmap.org;
     connect-src 'self' https://nominatim.openstreetmap.org https://tp-link-reader.martin0517for.workers.dev;
     manifest-src 'self';
     worker-src 'self';
@@ -52,6 +54,7 @@
   <link rel="stylesheet" href="./src/styles/activities.css" />
   <link rel="stylesheet" href="./src/styles/schedule.css" />
   <link rel="stylesheet" href="./src/styles/settings.css" />
+  <link rel="stylesheet" href="./src/styles/map.css" />
 </head>
 <body>
   <div id="app">

@@ -20,6 +20,7 @@ import { renderPlaceList } from "./features/places/placeList.js";
 import { renderSettings } from "./features/settings/settings.js";
 import { renderTripLists } from "./features/lists/tripLists.js";
 import { renderSchedule } from "./features/schedule/schedule.js";
+import { renderMap } from "./features/map/mapPage.js";
 import { settingsStore } from "./data/settings.js";
 import { migrateItemNotes } from "./data/placeNotes.js";
 
@@ -60,14 +61,11 @@ function tripFromPath(path) {
   }
 }
 
-const comingSoon = (heading) => (container) =>
-  renderPlaceholder(container, { heading, note: "這一頁會在後續步驟實作。" });
-
 const routes = {
   "/trips": renderTripList,
   "/trips/:id": tripPage("overview", "Overview", renderTripOverview),
   "/trips/:id/schedule": tripPage("schedule", "Schedule", renderSchedule),
-  "/trips/:id/map": tripPage("map", "Map", comingSoon("地圖")),
+  "/trips/:id/map": tripPage("map", "Map", renderMap),
   "/trips/:id/lists": tripPage("lists", "Lists", renderTripLists),
   // 從某趟旅程裡打開時，帶入那趟旅程：地點前面會有圓圈，可以快速加入那趟的想去地點（9.2，2026-11-01）
   "/places": (container) => ({ ...renderPlaceList(container, { trip: tripFromPath(lastMainPath) }), back: lastMainPath, page: "places" }),

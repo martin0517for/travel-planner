@@ -1,0 +1,271 @@
+/* ============================================
+   map.css — 旅程「地圖」頁籤（v0.14.0）
+   Leaflet 的層級最高約 1000，App 的頂部列 1500、底部導覽 1600、彈出畫面 3000 都比它高。
+   地圖底圖一律是淺色（深色模式也是），所以標記用固定的淺色分類色；
+   小卡片（Leaflet popup）改成跟隨 App 主題（Leaflet 預設永遠白底）。
+   ============================================ */
+
+/* 地圖頁：夾在頂部列與底部導覽中間，整頁不捲動 */
+.map-page {
+  position: fixed;
+  top: calc(var(--topbar-height) + var(--safe-top));
+  bottom: calc(var(--nav-height) + var(--safe-bottom));
+  left: 0;
+  right: 0;
+  max-width: var(--max-width);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-paper);
+}
+.map-page .day-tabs {
+  flex-shrink: 0;
+  margin: 0;
+  padding: var(--space-2) calc(var(--space-4) + var(--safe-right)) var(--space-2) calc(var(--space-4) + var(--safe-left));
+}
+.day-tab--all b { font-family: var(--font-body); }
+.map-wrap { position: relative; flex: 1; min-height: 0; }
+.map-canvas { position: absolute; inset: 0; background: #f2f1ee; }
+.map-canvas.leaflet-container { font-family: var(--font-body); }
+.leaflet-control-attribution { font-size: 10px; }
+
+/* ---- 浮動按鈕 ---- */
+.map-fab {
+  position: absolute;
+  z-index: 1100;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--color-line);
+  background: var(--color-paper-card);
+  color: var(--color-ink);
+  font: 600 0.85rem var(--font-body);
+  box-shadow: var(--shadow-card);
+  cursor: pointer;
+}
+.map-fab[hidden] { display: none; }
+.map-fab .icon { width: 18px; height: 18px; }
+.map-fab:active { background: var(--color-paper); }
+.map-fab--filter { top: var(--space-3); right: var(--space-3); }
+.map-fab--filter.is-on { background: var(--color-accent); color: var(--color-accent-text); border-color: var(--color-accent); }
+.map-fab--locate {
+  right: var(--space-3);
+  bottom: 30px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  justify-content: center;
+}
+.map-fab--locate.is-on { color: #2f80ed; }
+.map-fab--locate.is-busy .icon { animation: spin 1.2s linear infinite; }
+.map-fab--missing {
+  left: var(--space-3);
+  bottom: 30px;
+  min-height: 34px;
+  max-width: calc(100% - 90px);
+  font-weight: 500;
+  font-size: 0.8rem;
+  color: var(--color-ink-soft);
+}
+.map-fab--missing .icon { width: 16px; height: 16px; flex-shrink: 0; }
+
+/* ---- 提示：底圖載入失敗（上方）、定位訊息（下方） ---- */
+.map-notice,
+.map-toast {
+  position: absolute;
+  z-index: 1100;
+  left: var(--space-3);
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+  line-height: 1.45;
+  box-shadow: var(--shadow-card);
+}
+.map-notice {
+  top: var(--space-3);
+  right: 110px;
+  background: var(--color-paper-card);
+  border: 1px solid var(--color-line);
+  color: var(--color-ink-soft);
+}
+.map-toast {
+  right: var(--space-3);
+  bottom: 84px;
+  background: #191919;
+  color: #ffffff;
+}
+.map-notice[hidden],
+.map-toast[hidden] { display: none; }
+
+/* ---- 空畫面、載入中 ---- */
+.map-empty {
+  position: absolute;
+  z-index: 1050;
+  left: 50%;
+  top: 42%;
+  transform: translate(-50%, -50%);
+  width: min(290px, 84%);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-paper-card);
+  border: 1px solid var(--color-line);
+  text-align: center;
+  box-shadow: var(--shadow-card);
+}
+.map-empty[hidden] { display: none; }
+.map-empty p { margin: 0 0 var(--space-2); font-size: 0.92rem; font-weight: 600; }
+.map-empty .muted { font-size: 0.8rem; line-height: 1.5; }
+.map-empty .btn { margin-top: var(--space-3); }
+.map-empty .map-loading { margin: 0; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 500; color: var(--color-ink-soft); }
+
+/* ---- 標記（固定用淺色模式的分類色） ---- */
+.mk { background: none; border: 0; }
+.mk__dot {
+  --c: #448361;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  border: 2.5px solid var(--c);
+  color: var(--c);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  transition: transform 0.15s;
+}
+.mk__dot .icon { width: 17px; height: 17px; }
+.mk--attraction .mk__dot { --c: #448361; }
+.mk--restaurant .mk__dot { --c: #d9730d; }
+.mk--shopping .mk__dot { --c: #c4487a; }
+.mk--hotel .mk__dot { --c: #9f6b53; }
+.mk--transport .mk__dot { --c: #787774; }
+/* Day 模式：實心圓＋編號 */
+.mk--num .mk__dot {
+  background: var(--c);
+  color: #ffffff;
+  border-color: #ffffff;
+  font: 700 0.82rem/1 "Space Grotesk", -apple-system, sans-serif;
+}
+.mk--wide .mk__dot { width: 100%; padding: 0 7px; border-radius: 16px; white-space: nowrap; }
+/* 約略座標：虛線外框、變淡 */
+.mk--approx .mk__dot { border-style: dashed; opacity: 0.6; }
+.mk--approx.mk--num .mk__dot { border-style: solid; outline: 2px dashed var(--c); outline-offset: 1px; }
+/* 去過：變淡＋小勾 */
+.mk--visited .mk__dot { opacity: 0.45; }
+.mk--visited.mk--approx .mk__dot { opacity: 0.35; }
+.mk__check {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: #37352f;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.mk__check .icon { width: 10px; height: 10px; stroke-width: 3; }
+.mk.is-selected .mk__dot { transform: scale(1.25); opacity: 1; }
+
+/* 我的位置：藍點 */
+.me-dot { background: none; border: 0; }
+.me-dot span {
+  display: block;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #2f80ed;
+  border: 3px solid #ffffff;
+  box-shadow: 0 0 0 6px rgba(47, 128, 237, 0.25), 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+.map-route { stroke-linecap: round; }
+
+/* ---- 點標記後的小卡片（Leaflet popup，跟隨 App 主題） ---- */
+.map-popup .leaflet-popup-content-wrapper {
+  background: var(--color-paper-card);
+  color: var(--color-ink);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-line);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.22);
+}
+.map-popup .leaflet-popup-tip { background: var(--color-paper-card); }
+.map-popup .leaflet-popup-content { margin: 12px 14px; width: 226px !important; font-family: var(--font-body); font-size: 1rem; line-height: 1.4; }
+.map-popup a.leaflet-popup-close-button { color: var(--color-ink-soft); top: 4px; right: 4px; width: 28px; height: 28px; font: 20px/28px var(--font-body); }
+.map-card__head { display: flex; gap: 10px; align-items: flex-start; padding-right: 18px; }
+.map-card__icon {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--cat);
+  background: color-mix(in srgb, var(--cat) 14%, transparent);
+}
+.map-card__icon .icon { width: 18px; height: 18px; }
+.map-card__name { font-weight: 600; font-size: 0.95rem; line-height: 1.35; overflow-wrap: anywhere; }
+.map-card__sub { font-size: 0.75rem; color: var(--color-ink-soft); margin-top: 1px; }
+.map-card__line { margin-top: 8px; font-size: 0.8rem; line-height: 1.45; overflow-wrap: anywhere; }
+.map-card__line b { font-family: var(--font-mono); font-weight: 500; }
+.map-card__warn {
+  margin-top: 8px;
+  padding: 5px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--color-ink);
+  background: color-mix(in srgb, #d9730d 14%, transparent);
+}
+.map-card__actions { display: flex; gap: 8px; margin-top: 10px; }
+.map-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 38px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-line);
+  background: transparent;
+  color: var(--color-ink);
+  font: 600 0.85rem var(--font-body);
+  text-decoration: none;
+  cursor: pointer;
+}
+.map-btn .icon { width: 16px; height: 16px; }
+.map-popup a.map-btn--primary,
+.map-btn--primary {
+  background: var(--color-accent);
+  color: var(--color-accent-text);
+  border-color: var(--color-accent);
+}
+
+/* ---- 面板：篩選、沒有座標的地點 ---- */
+.map-filter-chips { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-3); }
+.map-missing { list-style: none; margin: 0 0 var(--space-4); padding: 0; }
+.map-missing button {
+  width: 100%;
+  min-height: var(--tap-size);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 4px;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--color-line);
+  color: var(--color-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.map-missing .place-row__icon { flex-shrink: 0; }
+.map-missing__name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.map-missing small { color: var(--color-ink-soft); font-size: 0.8rem; flex-shrink: 0; }
