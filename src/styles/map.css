@@ -27,6 +27,9 @@
 .map-wrap { position: relative; flex: 1; min-height: 0; }
 .map-canvas { position: absolute; inset: 0; background: #f2f1ee; }
 .map-canvas.leaflet-container { font-family: var(--font-body); }
+/* 底圖調成淡灰（v0.14.2，使用者覺得 OSM 標準地圖太雜亂）：
+   去掉顏色、降低對比、調亮，再稍微透出底色，彩色標記才會突出。只套在圖磚，標記、路線不受影響 */
+.map-tiles { filter: grayscale(1) contrast(0.8) brightness(1.08); opacity: 0.85; }
 .leaflet-control-attribution { font-size: 10px; }
 
 /* ---- 浮動按鈕 ---- */

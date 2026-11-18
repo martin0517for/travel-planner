@@ -17,6 +17,7 @@
  *   約略座標（Place.geoApprox，v0.13.7）：標記虛線外框、變淡；小卡片註明「可能差幾公里」；連到它的路線比較淡。
  *   去過（TripPlace.visited）：標記變淡＋右下角小勾。
  *   地圖底圖一律是淺色（深色模式也是，使用者決定），所以標記用固定的淺色分類色（寫在 map.css）。
+ *   v0.14.2：OSM 標準地圖太雜亂（使用者回報）→ 用 CSS 濾鏡把底圖去色、調淡（只套在圖磚，標記不受影響）。
  *
  * 點標記：上方跳出小卡片（Leaflet popup，map.css 改成跟隨 App 主題），「導航」打開 Google 地圖，
  *         「詳細」打開「想去的地點」的預覽（tripPlaceDetail，跟清單頁同一個）。
@@ -260,6 +261,7 @@ function createMap(ctx) {
     maxZoom: 19,
     // OSM 規定要帶 Referer；只有圖磚這樣設定（App 其他地方維持 no-referrer）
     referrerPolicy: "strict-origin-when-cross-origin",
+    className: "map-tiles", // map.css 用濾鏡把底圖調成淡灰（v0.14.2）
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>',
   }).addTo(map);
   // 底圖載入失敗時上方提示；之後一輪圖磚全部載入成功（例如網路恢復後移動地圖）才收起來
