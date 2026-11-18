@@ -191,7 +191,8 @@ function paintResults(box, trip, items, repaint) {
     ({ entry, place: p }) =>
       (!state.area || p.area === state.area) &&
       (!state.category || p.category === state.category) &&
-      (!text || [p.name, p.area, p.address, p.geoQuery, entry.notes, ...p.tags].some((t) => t.toLowerCase().includes(text)))
+      // 搜尋比對：名稱、地區、地址、搜尋位置的文字、地點備註（所有旅程共用，v0.14.1 補上）、這趟的備註、標籤
+      (!text || [p.name, p.area, p.address, p.geoQuery, p.notes, entry.notes, ...p.tags].some((t) => t.toLowerCase().includes(text)))
   );
 
   const withStatus = shown.map((x) => ({ ...x, usedIn: scheduledIn(trip.id, x.place.id) }));
